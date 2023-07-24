@@ -111,8 +111,6 @@ NTSTATUS read_from_virtual_disk(char* buf, ULONG count, LARGE_INTEGER offset)
 	return STATUS_SUCCESS;
 }
 
-// Write data to the virtual disk
-
 
 NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offset)
 {
@@ -164,7 +162,7 @@ NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offse
 	}
 
 	return status;
-
+}
 
 
 

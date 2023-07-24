@@ -2,6 +2,11 @@
 #include "pch.h"
 
 
+typedef struct DiskDevExt
+{
+	int deviceId;
+}DeviceId;
+
 typedef struct DISK
 {
 	LARGE_INTEGER size;

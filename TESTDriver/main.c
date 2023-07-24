@@ -2,6 +2,8 @@
 
 #include "IRP.h"
 
+#include "VirtualDisk.h"
+
 //pointer on device object
 
 PDEVICE_OBJECT gDeviceObject = NULL;
@@ -19,6 +21,22 @@ VOID UnloadDriver(PDRIVER_OBJECT DriverObject)
 
 }
 
+
+
+NTSTATUS IrpHandler(IN PDEVICE_OBJECT fdo, IN PIRP pIrp)
+{
+	NTSTATUS status = STATUS_SUCCESS;
+		if (fdo == gDeviceObject)
+		{
+		//	status =  ControlDeviceIrpHandler(fdo, pIrp);
+		}
+
+		DeviceId* devExt = (DeviceId*)fdo->DeviceExtension;
+		//status = DispatchIrp(devExt->deviceId, pIrp);
+		KdPrint((__FUNCTION__" %s\n", ex.what()));
+		//status= CompleteIrp(pIrp, STATUS_NO_SUCH_DEVICE, 0);
+		return status;
+}
 
 
 NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
@@ -58,7 +76,7 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 
 	for (size_t i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; ++i)
 	{
-		DriverObject->MajorFunction[i] = dispatch_irp;
+		DriverObject->MajorFunction[i] = IrpHandler;
 	}
 
 	return status;
