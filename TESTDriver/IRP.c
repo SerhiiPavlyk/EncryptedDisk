@@ -66,6 +66,7 @@ NTSTATUS dispatch_irp(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	NTSTATUS status = STATUS_SUCCESS;
 	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
 
+	//disk
 	switch (ioStack->MajorFunction)
 	{
 	case IRP_MJ_READ:
@@ -77,9 +78,10 @@ NTSTATUS dispatch_irp(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	case IRP_MJ_DEVICE_CONTROL:
 		status = handle_ioctl_request(DeviceObject, Irp);
 		break;
-	case IRP_MJ_CLEANUP:
-		status = handle_cleanup_request(DeviceObject, Irp);
-		break;
+	case://autorth
+		//create disk
+		//mount 
+		//unmount
 	default:
 		status = STATUS_INVALID_DEVICE_REQUEST;
 		Irp->IoStatus.Status = status;

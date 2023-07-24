@@ -119,7 +119,7 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	status = IoCreateDevice(DriverObject,		// pointer on DriverObject
 		0,					// additional size of memory
 		&gDeviceName,		// pointer to UNICODE_STRING
-		FILE_DEVICE_DISK,	// Device type
+		FILE_DEVICE_NULL,	// Device type
 		0,					// Device characteristic
 		FALSE,				// "Exclusive" device
 		&gDeviceObject);	// pointer do device object
