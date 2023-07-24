@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "IRP.h"
 
 
@@ -12,7 +13,7 @@ NTSTATUS handle_read_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	ULONG bytesToRead = ioStack->Parameters.Read.Length;
 	LARGE_INTEGER offset = ioStack->Parameters.Read.ByteOffset;
 
-	NTSTATUS status = read_from_virtual_disk(getMy_disk(), (char*)Irp->AssociatedIrp.SystemBuffer, bytesToRead, offset);
+	NTSTATUS status = read_from_virtual_disk((char*)Irp->AssociatedIrp.SystemBuffer, bytesToRead, offset);
 	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = NT_SUCCESS(status) ? bytesToRead : 0;
 	DbgPrint("Dummy Driver: handle_read_request\n");
@@ -40,8 +41,15 @@ NTSTATUS handle_ioctl_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	UNREFERENCED_PARAMETER(DeviceObject);
 	NTSTATUS status = STATUS_SUCCESS;
 
-	// Handle IOCTL requests from user mode here
-	// For example, implement custom IOCTLs to control the virtual disk behavior.
+	// createdisk
+	// 
+
+	/// <summary>
+	/// /
+	/// </summary>
+	/// <param name="DeviceObject"></param>
+	/// <param name="Irp"></param>
+	/// <returns></returns>
 
 	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = 0;
@@ -61,7 +69,8 @@ NTSTATUS handle_cleanup_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS dispatch_irp(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+
+NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
@@ -71,17 +80,19 @@ NTSTATUS dispatch_irp(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	{
 	case IRP_MJ_READ:
 		status = handle_read_request(DeviceObject, Irp);
+		//de
 		break;
 	case IRP_MJ_WRITE:
 		status = handle_write_request(DeviceObject, Irp);
+		//
 		break;
 	case IRP_MJ_DEVICE_CONTROL:
 		status = handle_ioctl_request(DeviceObject, Irp);
 		break;
-	case://autorth
-		//create disk
-		//mount 
-		//unmount
+		//case://autorth
+			//create disk
+			//mount 
+			//unmount
 	default:
 		status = STATUS_INVALID_DEVICE_REQUEST;
 		Irp->IoStatus.Status = status;
@@ -95,7 +106,7 @@ NTSTATUS dispatch_irp(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 
 
-NTSTATUS read_from_virtual_disk(HANDLE fileName, char* buf, ULONG count, LARGE_INTEGER offset)
+NTSTATUS read_from_virtual_disk(char* buf, ULONG count, LARGE_INTEGER offset)
 {
 	return STATUS_SUCCESS;
 }
@@ -117,10 +128,10 @@ NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offse
 
 	InitializeObjectAttributes(&objectAttributes, &dirName, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, NULL, NULL);
 
-	status = ZwOpenFile(&fileHandle,								
-		FILE_GENERIC_READ | FILE_GENERIC_WRITE,					
-		&objectAttributes,									
-		&ioStatusBlock,									
+	status = ZwOpenFile(&fileHandle,
+		FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+		&objectAttributes,
+		&ioStatusBlock,
 		0,
 		FILE_NON_DIRECTORY_FILE
 	);
@@ -153,4 +164,35 @@ NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offse
 	}
 
 	return status;
-}
+
+
+
+
+
+
+
+
+	//void xorEncrypt(char message[], const char key[])
+	//{
+	//	int msgLen = strlen(message);
+	//	int keyLen = strlen(key);
+	//	int i;
+
+	//	for (i = 0; i < msgLen; ++i)
+	//	{
+	//		// XOR each character with the corresponding character in the key
+	//		message[i] = message[i] ^ key[i % keyLen];
+	//	}
+	//}
+
+	// To decrypt the message, simply call the xorEncrypt function again
+	// with the same key: xorEncrypt(message, key);
+
+	//char message[100];
+	//const char key[] = "my_secret_key"; // Replace with your custom key
+	//printf("Enter the message to encrypt: ");
+	//fgets(message, sizeof(message), stdin);
+
+	//xorEncrypt(message, key);
+
+	//printf("Encrypted message: %s\n", message);

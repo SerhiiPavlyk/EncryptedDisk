@@ -1,4 +1,30 @@
 #include "ControlDeviceIrpHandler.h"
+#include "pch.h"
+
+NTSTATUS IrpHandler(IN PDEVICE_OBJECT pDeviceObject, IN PIRP pIrp)
+{
+
+
+	NTSTATUS status = STATUS_SUCCESS;
+	if (pDeviceObject == gDeviceObject)
+	{
+		return ControlDeviceIrpHandler(pDeviceObject, pIrp);
+	}
+
+	//=================нужно доделать=================
+		//DiskDevExt* devExt = (DiskDevExt*) pDeviceObject->DeviceExtension;
+
+		//NTSTATUS status = gMountManager->DispatchIrp(devExt->deviceId, pIrp);
+
+	if (status != STATUS_SUCCESS)
+	{
+		KdPrint((__FUNCTION__ " Error: 0x%X\n", status));
+		//return CompleteIrp(pIrp, STATUS_NO_SUCH_DEVICE, 0);
+	}
+
+	return status;
+}
+
 
 
 NTSTATUS Mount_Disk(PVOID buff, ULONG input_buff_length, ULONG output_buff_length)
