@@ -1,0 +1,17 @@
+# Compiled class file
+*.obj
+
+# Log file
+*.log
+
+/bin/*/./
+/.vs/*
+*Debug*
+/Build/*
+
+
+# Project fire #
+*.sln
+*.vcxproj
+*.vcxproj*
+
