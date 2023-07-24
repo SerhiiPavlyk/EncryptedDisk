@@ -12,7 +12,7 @@ typedef struct DISK
 	LARGE_INTEGER size;
 	UNICODE_STRING FileName;
 	char Letter;
-	ULONG devID;
+	DeviceId devID;
 	UNICODE_STRING password;
 } VIRTUALDISK, * PVIRTUALDISK;
 
