@@ -1,8 +1,8 @@
-#include "pch.h"
+#include "main/pch.h"
 
-#include "IRP.h"
+#include "IRP/IRP.h"
 
-#include "VirtualDisk.h"
+#include "VirtualDisk/VirtualDisk.h"
 
 //pointer on device object
 

@@ -1,5 +1,5 @@
-#include "pch.h"
-#include "IRP.h"
+#include "main/pch.h"
+#include "IRP/IRP.h"
 
 
 // disk as parametr

@@ -1,5 +1,5 @@
-#include "pch.h"
-#include "VirtualDisk.h"
+#include "main/pch.h"
+#include "VirtualDisk/VirtualDisk.h"
 
 NTSTATUS CreateVirtualDisk(VIRTUALDISK virtualDisk)
 {

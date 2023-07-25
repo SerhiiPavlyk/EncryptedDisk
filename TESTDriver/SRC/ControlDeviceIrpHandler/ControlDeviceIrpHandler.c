@@ -1,5 +1,5 @@
-#include "ControlDeviceIrpHandler.h"
-#include "pch.h"
+#include "ControlDeviceIrpHandler/ControlDeviceIrpHandler.h"
+#include "main/pch.h"
 
 NTSTATUS IrpHandler(IN PDEVICE_OBJECT pDeviceObject, IN PIRP pIrp)
 {
