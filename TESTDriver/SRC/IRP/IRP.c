@@ -188,14 +188,14 @@ NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offse
 	}
 
 	// Write the data to the file
-	status = ZwWriteFile(L"\\??\\H:\\DISK", NULL, NULL, NULL, &ioStatusBlock, (PVOID)data, bytesToWrite, &offset, NULL);
+	status = ZwWriteFile(ROOT_DIR_NAME, NULL, NULL, NULL, &ioStatusBlock, (PVOID)data, bytesToWrite, &offset, NULL);
 
 	if (!NT_SUCCESS(status))
 	{
 		DbgPrint("Failed to write to file: 0x%X\n", status);
 		return status;
 	}
-
+	//ZwClose();
 	return status;
 }
 
