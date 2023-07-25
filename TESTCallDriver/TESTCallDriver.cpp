@@ -15,7 +15,7 @@ int main()
     CHAR writeData[] = "This is a test message from the console app.";
 
     // Step 1: Open the driver's device
-    hDevice = CreateFile(DEVICE_NAME, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+    hDevice = CreateFileW(DEVICE_NAME, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
     if (hDevice == INVALID_HANDLE_VALUE)
     {
         printf("Error opening device: %d\n", GetLastError());
