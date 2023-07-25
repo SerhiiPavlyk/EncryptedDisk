@@ -85,21 +85,21 @@ NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 	switch (ioStack->MajorFunction)
 	{
 
-	//case IRP_MJ_READ:
-	//	status = handle_read_request(DeviceObject, Irp);
-	//	//xorEncrypt
-	//	break;
-	//case IRP_MJ_WRITE:
-	//	status = handle_write_request(DeviceObject, Irp);
-	//	//xorEncrypt
-	//	break;
-	//case IRP_MJ_DEVICE_CONTROL:
-	//	status = handle_ioctl_request(DeviceObject, Irp);
-	//	break;
-	//	//case://autorth
-	//		//create disk
-	//		//mount 
-	//		//unmount
+		//case IRP_MJ_READ:
+		//	status = handle_read_request(DeviceObject, Irp);
+		//	//xorEncrypt
+		//	break;
+		//case IRP_MJ_WRITE:
+		//	status = handle_write_request(DeviceObject, Irp);
+		//	//xorEncrypt
+		//	break;
+		//case IRP_MJ_DEVICE_CONTROL:
+		//	status = handle_ioctl_request(DeviceObject, Irp);
+		//	break;
+		//	//case://autorth
+		//		//create disk
+		//		//mount 
+		//		//unmount
 
 
 	case IRP_MJ_CREATE:
@@ -117,6 +117,7 @@ NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 		{
 		case CORE_MNT_MOUNT_IOCTL:
 			//status = DispatchMount(buffer, inputBufferLength, outputBufferLength);
+			DbgPrintEx(0, 0, "Dummy Driver: CORE_MNT_MOUNT_IOCTL\n");
 			break;
 		case CORE_MNT_EXCHANGE_IOCTL:
 			//status = DispatchExchange(buffer, inputBufferLength, outputBufferLength);
@@ -205,27 +206,27 @@ NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offse
 
 
 
-	//void xorEncrypt(char message[], const char key[])
-	//{
-	//	int msgLen = strlen(message);
-	//	int keyLen = strlen(key);
-	//	int i;
+//void xorEncrypt(char message[], const char key[])
+//{
+//	int msgLen = strlen(message);
+//	int keyLen = strlen(key);
+//	int i;
 
-	//	for (i = 0; i < msgLen; ++i)
-	//	{
-	//		// XOR each character with the corresponding character in the key
-	//		message[i] = message[i] ^ key[i % keyLen];
-	//	}
-	//}
+//	for (i = 0; i < msgLen; ++i)
+//	{
+//		// XOR each character with the corresponding character in the key
+//		message[i] = message[i] ^ key[i % keyLen];
+//	}
+//}
 
-	// To decrypt the message, simply call the xorEncrypt function again
-	// with the same key: xorEncrypt(message, key);
+// To decrypt the message, simply call the xorEncrypt function again
+// with the same key: xorEncrypt(message, key);
 
-	//char message[100];
-	//const char key[] = "my_secret_key"; // Replace with your custom key
-	//printf("Enter the message to encrypt: ");
-	//fgets(message, sizeof(message), stdin);
+//char message[100];
+//const char key[] = "my_secret_key"; // Replace with your custom key
+//printf("Enter the message to encrypt: ");
+//fgets(message, sizeof(message), stdin);
 
-	//xorEncrypt(message, key);
+//xorEncrypt(message, key);
 
-	//printf("Encrypted message: %s\n", message);
+//printf("Encrypted message: %s\n", message);
