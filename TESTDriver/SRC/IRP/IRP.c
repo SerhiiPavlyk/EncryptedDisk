@@ -68,7 +68,13 @@ NTSTATUS handle_cleanup_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 	return STATUS_SUCCESS;
 }
-
+NTSTATUS CompleteIrp(PIRP Irp, NTSTATUS status, ULONG info)
+{
+	Irp->IoStatus.Status = status;
+	Irp->IoStatus.Information = info;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	return status;
+}
 
 NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
@@ -78,21 +84,50 @@ NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 	//disk
 	switch (ioStack->MajorFunction)
 	{
-	case IRP_MJ_READ:
-		status = handle_read_request(DeviceObject, Irp);
-		//de
-		break;
-	case IRP_MJ_WRITE:
-		status = handle_write_request(DeviceObject, Irp);
-		//
-		break;
+
+	//case IRP_MJ_READ:
+	//	status = handle_read_request(DeviceObject, Irp);
+	//	//xorEncrypt
+	//	break;
+	//case IRP_MJ_WRITE:
+	//	status = handle_write_request(DeviceObject, Irp);
+	//	//xorEncrypt
+	//	break;
+	//case IRP_MJ_DEVICE_CONTROL:
+	//	status = handle_ioctl_request(DeviceObject, Irp);
+	//	break;
+	//	//case://autorth
+	//		//create disk
+	//		//mount 
+	//		//unmount
+
+
+	case IRP_MJ_CREATE:
+	case IRP_MJ_CLOSE:
+	case IRP_MJ_CLEANUP:
+		return CompleteIrp(Irp, STATUS_SUCCESS, 0);
 	case IRP_MJ_DEVICE_CONTROL:
-		status = handle_ioctl_request(DeviceObject, Irp);
-		break;
-		//case://autorth
-			//create disk
-			//mount 
-			//unmount
+	{
+		ULONG code = ioStack->Parameters.DeviceIoControl.IoControlCode;
+		PVOID buffer = Irp->AssociatedIrp.SystemBuffer;
+		ULONG outputBufferLength = ioStack->Parameters.DeviceIoControl.OutputBufferLength;
+		ULONG inputBufferLength = ioStack->Parameters.DeviceIoControl.InputBufferLength;
+		NTSTATUS status = STATUS_SUCCESS;
+		switch (code)
+		{
+		case CORE_MNT_MOUNT_IOCTL:
+			//status = DispatchMount(buffer, inputBufferLength, outputBufferLength);
+			break;
+		case CORE_MNT_EXCHANGE_IOCTL:
+			//status = DispatchExchange(buffer, inputBufferLength, outputBufferLength);
+			break;
+		case CORE_MNT_UNMOUNT_IOCTL:
+			//status = DispatchUnmount(buffer, inputBufferLength, outputBufferLength);
+			break;
+		}
+		return CompleteIrp(Irp, status, outputBufferLength);
+	}
+
 	default:
 		status = STATUS_INVALID_DEVICE_REQUEST;
 		Irp->IoStatus.Status = status;

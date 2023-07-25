@@ -10,10 +10,10 @@ typedef struct DiskDevExt
 typedef struct DISK
 {
 	LARGE_INTEGER size;
-	UNICODE_STRING FileName;
+	PUNICODE_STRING FileName;
 	char Letter;
 	DeviceId devID;
-	UNICODE_STRING password;
+	PUNICODE_STRING password;
 } VIRTUALDISK, * PVIRTUALDISK;
 
 

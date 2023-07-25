@@ -7,11 +7,10 @@
 /bin/*/./
 /.vs/*
 *Debug*
-/Build/*
+/build/*
 
 
-# Project fire #
+# Project files #
 *.sln
-*.vcxproj
 *.vcxproj*
 

@@ -26,16 +26,19 @@ VOID UnloadDriver(PDRIVER_OBJECT DriverObject)
 NTSTATUS IrpHandler(IN PDEVICE_OBJECT fdo, IN PIRP pIrp)
 {
 	NTSTATUS status = STATUS_SUCCESS;
-		if (fdo == gDeviceObject)
-		{
-		//	status =  ControlDeviceIrpHandler(fdo, pIrp);
-		}
+	if (fdo == gDeviceObject)
+	{
+		status = dispatch_irp(fdo, pIrp);
+	}
 
-		DeviceId* devExt = (DeviceId*)fdo->DeviceExtension;
-		//status = DispatchIrp(devExt->deviceId, pIrp);
-		KdPrint((__FUNCTION__" %s\n", ex.what()));
-		//status= CompleteIrp(pIrp, STATUS_NO_SUCH_DEVICE, 0);
-		return status;
+	DeviceId* devExt = (DeviceId*)fdo->DeviceExtension;
+	//status = DispatchIrp(devExt->deviceId, pIrp);
+	if (status != STATUS_SUCCESS)
+	{
+		status = CompleteIrp(pIrp, STATUS_NO_SUCH_DEVICE, 0);
+	}
+	
+	return status;
 }
 
 
