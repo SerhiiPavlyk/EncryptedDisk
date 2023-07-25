@@ -1,0 +1,13 @@
+# CMakeLists.txt for the application that call Driver
+
+cmake_minimum_required(VERSION 3.21)
+project(FileSearcher VERSION 1.0.0)
+
+set(SOURCES
+  TESTCallDriver.cpp
+)
+
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_14)
