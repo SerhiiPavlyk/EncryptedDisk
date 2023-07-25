@@ -2,8 +2,6 @@
 
 #include "IRP/IRP.h"
 
-#include "VirtualDisk/VirtualDisk.h"
-
 //pointer on device object
 
 PDEVICE_OBJECT gDeviceObject = NULL;
@@ -32,7 +30,7 @@ NTSTATUS IrpHandler(IN PDEVICE_OBJECT fdo, IN PIRP pIrp)
 	}
 
 	DeviceId* devExt = (DeviceId*)fdo->DeviceExtension;
-	//status = DispatchIrp(devExt->deviceId, pIrp);
+	status = MountManagerDispatchIrp(devExt->deviceId, pIrp);
 	if (status != STATUS_SUCCESS)
 	{
 		status = CompleteIrp(pIrp, STATUS_NO_SUCH_DEVICE, 0);
@@ -82,13 +80,8 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 		DriverObject->MajorFunction[i] = IrpHandler;
 	}
 
+	MountManagerInit(DriverObject);
 	return status;
-
-	/* Driver initialization are done */
-	//================================ÏĞÎÄÎËÆÈÒÜ â Áàğäå================================
-	//gMountManager = new MountManager(DriverObject);
-	//================================ÏĞÎÄÎËÆÈÒÜ â Áàğäå================================
-
 }
 
 

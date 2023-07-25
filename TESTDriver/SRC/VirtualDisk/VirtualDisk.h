@@ -1,7 +1,5 @@
-
 #pragma once
-#include "main/pch.h"
-
+#include "MountManager/MountManager.h"
 #define MAX_SIZE 25
 
 FAST_MUTEX fastMtx;
@@ -12,31 +10,35 @@ FAST_MUTEX fastMtx;
 
 typedef struct DiskDevExt
 {
-	int deviceId;
+	UINT32 deviceId;
 }DeviceId;
 
+typedef struct IrpHandlerStruct {
+	UINT32 devId_;
+	UINT64 totalLength_;
+	PDEVICE_OBJECT  deviceObject_;
+}IrpStruct;
 
+NTSTATUS deleteDevice();
+
+//пошел код из MountedDisk, у него есть  IrpHandler irpDispatcher_ и пока что PIRP
+
+IrpStruct irpStruct;
 
 typedef struct Disk
 {
 	LARGE_INTEGER size;
 	UNICODE_STRING FileName;
-	PDRIVER_OBJECT obj;
+	PDEVICE_OBJECT obj;
 	CHAR Letter;
-	DeviceId devID;				//когда будет инициализироватьс€ структура, мы не даем юзеру указать devID
-	UNICODE_STRING password;
+	DeviceId devID;        //когда будет инициализироватьс€ структура, мы не даем юзеру указать devID
+	PUNICODE_STRING password;
 	//что-то типа мапы дл€ хранени€ дисков. добавл€ютс€/удал€ютс€ диски при монтировании/демонтировании
 } VIRTUALDISK, * PVIRTUALDISK;
 
-VIRTUALDISK DiskList[MAX_SIZE];			//список з 25 доступних диск≥в (не 26, бо €к м≥н≥мум один Ї на пк)
+VIRTUALDISK DiskList[MAX_SIZE];      //список з 25 доступних диск≥в (не 26, бо €к м≥н≥мум один Ї на пк)
 
-NTSTATUS CreateVirtualDisk(/*struct Disk*/VIRTUALDISK disk);
-
-NTSTATUS MountDisk(VIRTUALDISK disk);
-
-NTSTATUS UnmountDisk(UINT32 deviceId);
-
-NTSTATUS DispatchIrp(UINT32 devId, PIRP irp);
+NTSTATUS CreateVirtualDisk();
 
 VOID RequestExchange(UINT32 devID,
 	/*VIRTUALDISK disk,*/

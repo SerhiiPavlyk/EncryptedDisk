@@ -116,14 +116,14 @@ NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 		switch (code)
 		{
 		case CORE_MNT_MOUNT_IOCTL:
-			//status = DispatchMount(buffer, inputBufferLength, outputBufferLength);
+			status = DispatchMount(buffer, inputBufferLength, outputBufferLength);
 			DbgPrintEx(0, 0, "Dummy Driver: CORE_MNT_MOUNT_IOCTL\n");
 			break;
 		case CORE_MNT_EXCHANGE_IOCTL:
-			//status = DispatchExchange(buffer, inputBufferLength, outputBufferLength);
+			status = DispatchExchange(buffer, inputBufferLength, outputBufferLength);
 			break;
 		case CORE_MNT_UNMOUNT_IOCTL:
-			//status = DispatchUnmount(buffer, inputBufferLength, outputBufferLength);
+			status = DispatchUnmount(buffer, inputBufferLength, outputBufferLength);
 			break;
 		}
 		return CompleteIrp(Irp, status, outputBufferLength);
@@ -201,7 +201,56 @@ NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offse
 }
 
 
+NTSTATUS DispatchMount(PVOID buffer,
+	ULONG inputBufferLength,
+	ULONG outputBufferLength)
+{
 
+	if (inputBufferLength >= sizeof(CoreMNTMountRequest) ||
+		outputBufferLength >= sizeof(CoreMNTMountResponse))
+	{
+
+		CoreMNTMountRequest* request = (CoreMNTMountRequest*)buffer;
+		UINT64 totalLength = request->totalLength;
+		CoreMNTMountResponse* response = (CoreMNTMountResponse*)buffer;
+		CreateVirtualDisk();
+		response->deviceId = Mount(totalLength);
+		return STATUS_SUCCESS;
+	}
+}
+NTSTATUS DispatchExchange(PVOID buffer, ULONG inputBufferLength, ULONG outputBufferLength)
+{
+
+	if (inputBufferLength >= sizeof(CoreMNTExchangeRequest) ||
+		outputBufferLength >= sizeof(CoreMNTExchangeResponse))
+	{
+		CoreMNTExchangeRequest* request = (CoreMNTExchangeRequest*)buffer;
+
+		CoreMNTExchangeResponse response = { 0 };
+		MountManagerRequestExchange(request->deviceId,
+			request->lastType,
+			request->lastStatus,
+			request->lastSize,
+			request->data,
+			request->dataSize,
+			&response.type,
+			&response.size,
+			&response.offset);
+		memcpy(buffer, &response, sizeof(response));
+		return STATUS_SUCCESS;
+	}
+}
+NTSTATUS DispatchUnmount(PVOID buffer, ULONG inputBufferLength, ULONG outputBufferLength)
+{
+		if (inputBufferLength >= sizeof(CoreMNTUnmountRequest))
+		{
+			CoreMNTUnmountRequest* request = (CoreMNTUnmountRequest*)buffer;
+			UnmountDisk(request->deviceId);
+			return STATUS_SUCCESS;
+		}
+		else
+			return STATUS_UNSUCCESSFUL;
+}
 
 
 
