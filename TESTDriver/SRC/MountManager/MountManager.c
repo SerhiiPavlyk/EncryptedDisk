@@ -105,6 +105,7 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 
 int Mount(UINT64 totalLength)
 {
+	//DbgBreakPoint();
 	//generate id
 	UINT32 devId = 0;
 	{
@@ -146,7 +147,7 @@ int Mount(UINT64 totalLength)
 		return STATUS_FAILED_DRIVER_ENTRY;
 	}*/
 
-	disk->irpDispatcher.deviceObject_->Size = 2000LL * 1024;
+	//disk->irpDispatcher.deviceObject_->Size = 2000LL * 1024;
 
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
