@@ -26,11 +26,12 @@ NTSTATUS IrpHandler(IN PDEVICE_OBJECT fdo, IN PIRP pIrp)
 	NTSTATUS status = STATUS_SUCCESS;
 	if (fdo == gDeviceObject)
 	{
-		status = dispatch_irp(fdo, pIrp);
+		return dispatch_irp(fdo, pIrp);
 	}
-
-	DeviceId* devExt = (DeviceId*)fdo->DeviceExtension;
-	status = MountManagerDispatchIrp(devExt->deviceId, pIrp);
+	DbgBreakPoint();
+	PDeviceId devExt = (PDeviceId)fdo->DeviceExtension;
+	UINT32 deviceIdValue = devExt->deviceId;
+	status = MountManagerDispatchIrp(deviceIdValue, pIrp);
 	if (status != STATUS_SUCCESS)
 	{
 		status = CompleteIrp(pIrp, STATUS_NO_SUCH_DEVICE, 0);

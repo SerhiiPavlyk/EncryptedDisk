@@ -7,29 +7,29 @@
 // system set a letter
 // notify system
 
-NTSTATUS IrpHandlerInit(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverObject)
+NTSTATUS IrpHandlerInit(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverObject, PMOUNTEDDISK Mdisk)
 {
 	IrpData.devId_.deviceId = devId;
 	IrpData.totalLength_ = totalLength;
-	PDEVICE_OBJECT deviceObject;
+	PDEVICE_OBJECT deviceObject = NULL;
 	NTSTATUS status = STATUS_SUCCESS;
-	UNICODE_STRING deviceName;
-	WCHAR device_name_buffer[MAXIMUM_FILENAME_LENGTH];
+	//UNICODE_STRING deviceName;
+	//WCHAR device_name_buffer[MAXIMUM_FILENAME_LENGTH];
 
 	//form device name
+	UNICODE_STRING gDeviceName = RTL_CONSTANT_STRING(L"\\Device\\disk0");
 
-	RtlStringCbPrintfW(device_name_buffer,
-		sizeof(device_name_buffer),
-		DIRECT_DISK_PREFIX L"%u",
-		IrpData.devId_.deviceId);
-	RtlInitUnicodeString(&deviceName, device_name_buffer);
+		//RtlStringCbPrintfW(device_name_buffer,
+		//	sizeof(device_name_buffer),
+		//	DIRECT_DISK_PREFIX L"%u",
+		//	IrpData.devId_.deviceId);
+		//RtlInitUnicodeString(&deviceName, device_name_buffer);
 
-
-
+	ULONG size = sizeof(DeviceId);
 	//create device
 	status = IoCreateDevice(DriverObject,
-		sizeof(DeviceId),
-		&deviceName,
+		size,
+		&gDeviceName,
 		FILE_DEVICE_DISK,
 		0,
 		FALSE,
@@ -50,7 +50,8 @@ NTSTATUS IrpHandlerInit(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverO
 
 	deviceObject->Flags |= DO_DIRECT_IO;
 	deviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
-
+	Mdisk->FileName = gDeviceName;
+	Mdisk->irpDispatcher = IrpData;
 	return status;
 }
 
@@ -185,7 +186,7 @@ NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
-
+	DbgBreakPoint();
 	//disk
 	switch (ioStack->MajorFunction)
 	{

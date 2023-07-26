@@ -10,7 +10,7 @@
 typedef struct DiskDevExt
 {
 	UINT32 deviceId;
-}DeviceId;
+}DeviceId, * PDeviceId;
 
 typedef struct IrpHandlerStruct {
 	DeviceId devId_;

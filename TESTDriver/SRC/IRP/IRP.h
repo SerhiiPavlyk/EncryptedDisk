@@ -13,7 +13,8 @@ typedef struct IrpParametrs
 
 NTSTATUS IrpHandlerInit(UINT32 devId,
 	UINT64 totalLength,
-	PDRIVER_OBJECT DriverObject);
+	PDRIVER_OBJECT DriverObject,
+	PMOUNTEDDISK Mdisk);
 
 IrpStruct IrpData;
 

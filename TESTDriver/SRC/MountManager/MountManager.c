@@ -115,6 +115,7 @@ int Mount(UINT64 totalLength)
 		{
 			DbgPrintEx(0, 0, "FUNCTION - device ID already exist\n");
 		}
+		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 	}
 
 	PMOUNTEDDISK disk = (PMOUNTEDDISK)ExAllocatePoolWithTag(NonPagedPool, sizeof(MOUNTEDDISK), "mntDisk");
@@ -124,9 +125,23 @@ int Mount(UINT64 totalLength)
 		return -1;
 	}
 
-	IrpHandlerInit(devId, totalLength, DataOfMountManager.DriverObject);
+	if (IrpHandlerInit(devId, totalLength, DataOfMountManager.DriverObject,disk) != STATUS_SUCCESS)
+	{
+		DbgPrintEx(0, 0, "Failed IrpHandlerInit\n");
+		return -1;
+	};
 
-	//disk->FileName=                   =================С ним сейчас что-то делаем?=============
+
+
+	UNICODE_STRING gSymbolicLinkName = RTL_CONSTANT_STRING(L"\\Device\\Symbolic_Link_Name_TEST");
+	disk->irpDispatcher.deviceObject_->Size = 2000LL * 1024;
+
+	if (IoCreateSymbolicLink(&gSymbolicLinkName, &disk->FileName) != STATUS_SUCCESS)
+	{
+		DbgPrint("IoCreateSymbolicLink fail!\n");
+		return STATUS_FAILED_DRIVER_ENTRY;
+	}
+
 
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
