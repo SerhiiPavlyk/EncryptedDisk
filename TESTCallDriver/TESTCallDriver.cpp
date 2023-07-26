@@ -12,7 +12,7 @@ int main()
 {   
     HANDLE hDevice = INVALID_HANDLE_VALUE;
     DWORD bytesReturned;
-    CHAR writeData[] = "This is a test message from the console app.";
+    CHAR writeData[] = "Name Size Letter? ";
 
     // Step 1: Open the driver's device
     hDevice = CreateFileW(DEVICE_NAME, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);

@@ -13,17 +13,10 @@ typedef struct DiskDevExt
 	UINT32 deviceId;
 }DeviceId;
 
-typedef struct IrpHandlerStruct {
-	UINT32 devId_;
-	UINT64 totalLength_;
-	PDEVICE_OBJECT  deviceObject_;
-}IrpStruct;
 
 NTSTATUS deleteDevice();
 
 //пошел код из MountedDisk, у него есть  IrpHandler irpDispatcher_ и пока что PIRP
-
-IrpStruct irpStruct;
 
 typedef struct Disk
 {

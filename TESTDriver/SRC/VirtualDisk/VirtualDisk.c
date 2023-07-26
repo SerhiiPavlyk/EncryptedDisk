@@ -82,59 +82,6 @@ NTSTATUS DispatchIrp(UINT32 devId, PIRP irp)
 
 
 
-NTSTATUS IrpHandlerDisk(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverObject, PMountManager mountManager)
-{
-
-	irpStruct.devId_ = devId;
-	irpStruct.totalLength_ = totalLength;
-
-	NTSTATUS status = STATUS_SUCCESS;
-	UNICODE_STRING deviceName;
-	WCHAR device_name_buffer[50];
-	PDEVICE_OBJECT deviceObject;
-
-	//form device name
-	//swprintf(device_name_buffer, DIRECT_DISK_PREFIX L"%u", devId);
-	RtlInitUnicodeString(&deviceName, device_name_buffer);
-
-	//create device
-	status = IoCreateDevice(DriverObject,
-		sizeof(DeviceId),
-		&deviceName,
-		FILE_DEVICE_DISK,
-		0,
-		FALSE,
-		&deviceObject);
-
-	if (status != STATUS_SUCCESS)
-	{
-		DbgPrintEx(0, 0, "FUNCTION can't create device.");
-		return STATUS_UNSUCCESSFUL;
-	}
-
-	irpStruct.deviceObject_ = deviceObject;
-
-	DeviceId* devExt = (DeviceId*)deviceObject->DeviceExtension;
-	memset(devExt, 0, sizeof(DeviceId));
-
-	devExt->deviceId = devId;
-
-	deviceObject->Flags |= DO_DIRECT_IO;
-	deviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
-
-	return status;
-}
-
-NTSTATUS deleteDevice()
-{
-	IoDeleteDevice(irpStruct.deviceObject_);
-	DbgPrintEx(0, 0, "deleteDevice() - device successfully deleted!\n");
-	return STATUS_SUCCESS;
-}
-
-
-
-
 
 
 

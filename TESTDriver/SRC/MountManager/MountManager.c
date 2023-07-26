@@ -51,14 +51,14 @@ int Mount(UINT64 totalLength)
 			DbgPrintEx(0,0, "__FUNCTION__ - device ID already exist.");
 		}
 	}
-	boost::shared_ptr<MountedDisk> disk(
+	/*boost::shared_ptr<MountedDisk> disk(
 		new MountedDisk(driverObject_, this, devId, totalLength));
 	AutoMutex guard(diskMapLock_);
 	MountedDiskMapPairIB pairIb =
 		diskMap_.insert(std::make_pair(devId, disk));
 	if (!pairIb.second)
 		throw std::exception(__FUNCTION__" - device ID already exist.");
-	ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
+	ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);*/
 	return devId;
 }
 

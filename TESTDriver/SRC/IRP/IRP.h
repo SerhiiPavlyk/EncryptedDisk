@@ -9,6 +9,23 @@ struct IrpParam
 	char* buffer;
 };
 
+typedef struct IrpHandlerStruct {
+	UINT32 devId_;
+	UINT64 totalLength_;
+	PDEVICE_OBJECT  deviceObject_;
+}IrpStruct;
+
+NTSTATUS IrpHandlerInit(int devId,
+	UINT64 totalLength,
+	PDRIVER_OBJECT DriverObject,
+	MountManager* mountManager);
+
+IrpStruct IrpData;
+
+
+
+NTSTATUS deleteDevice();
+
 // IRP_MJ_READ handler
 NTSTATUS handle_read_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
 
