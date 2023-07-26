@@ -124,9 +124,8 @@ int Mount(UINT64 totalLength)
 		return -1;
 	}
 
-	disk->irpDispatcher.totalLength_ = totalLength;
-	disk->irpDispatcher.deviceObject_ = DataOfMountManager.DriverObject; // ?????
-	disk->irpDispatcher.devId_.deviceId = devId;
+	IrpHandlerInit(devId, totalLength, DataOfMountManager.DriverObject);
+
 	//disk->FileName=                   =================С ним сейчас что-то делаем?=============
 
 	{

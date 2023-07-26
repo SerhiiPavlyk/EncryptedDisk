@@ -1,7 +1,7 @@
 #pragma once
 //#include "VirtualDisk/VirtualDisk.h"
 #include "MountedDisk/MountedDisk.h"
-
+#include "IRP/IRP.h"
 typedef struct MManager
 {
 	UINT32 gMountedDiskCount;   //счетчик дисков, глобальная переменная

@@ -21,7 +21,7 @@ NTSTATUS IrpHandlerInit(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverO
 	RtlStringCbPrintfW(device_name_buffer,
 		sizeof(device_name_buffer),
 		DIRECT_DISK_PREFIX L"%u",
-		IrpData.devId_);
+		IrpData.devId_.deviceId);
 	RtlInitUnicodeString(&deviceName, device_name_buffer);
 
 
@@ -584,7 +584,7 @@ void dispatchIoctl(PIRP irp)
 			RtlStringCbPrintfW(device_name_buffer,
 				sizeof(device_name_buffer),
 				DIRECT_DISK_PREFIX L"%u",
-				IrpData.devId_);
+				IrpData.devId_.deviceId);
 
 			UNICODE_STRING deviceName;
 			RtlInitUnicodeString(&deviceName, device_name_buffer);
@@ -623,7 +623,7 @@ void dispatchIoctl(PIRP irp)
 			RtlStringCbPrintfW(unique_id_buffer,
 				sizeof(unique_id_buffer),
 				DIRECT_DISK_PREFIX L"%u",
-				IrpData.devId_);
+				IrpData.devId_.deviceId);
 
 			UNICODE_STRING uniqueId;
 			RtlInitUnicodeString(&uniqueId, unique_id_buffer);
