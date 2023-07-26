@@ -7,12 +7,14 @@ wdk_add_driver(TESTDriver
     KMDF 1.15
 	# SRC/ControlDeviceIrpHandler/ControlDeviceIrpHandler.с
 	SRC/IRP/IRP.c
+	SRC/MountedDisk/MountedDisk.c
 	SRC/main/pch.c
 	SRC/main/main.c
 	SRC/MountManager/MountManager.c
 	SRC/VirtualDisk/VirtualDisk.c
 	# SRC/ControlDeviceIrpHandler/ControlDeviceIrpHandler.h
 	SRC/IRP/IRP.h
+	SRC/MountedDisk/MountedDisk.h
 	SRC/main/pch.h
 	SRC/MountManager/MountManager.h
 	SRC/VirtualDisk/VirtualDisk.h
