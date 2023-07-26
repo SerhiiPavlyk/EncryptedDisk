@@ -7,9 +7,9 @@
 // system set a letter
 // notify system
 
-NTSTATUS IrpHandlerInit(int devId, UINT64 totalLength, PDRIVER_OBJECT DriverObject, MountManager* mountManager)
+NTSTATUS IrpHandlerInit(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverObject)
 {
-	IrpData.devId_ = devId;
+	IrpData.devId_.deviceId = devId;
 	IrpData.totalLength_ = totalLength;
 	PDEVICE_OBJECT deviceObject;
 	NTSTATUS status = STATUS_SUCCESS;
@@ -54,6 +54,55 @@ NTSTATUS IrpHandlerInit(int devId, UINT64 totalLength, PDRIVER_OBJECT DriverObje
 	return status;
 }
 
+void IrpHandlergetIrpParam(PIRP irp, IrpParam* irpParam)
+{
+	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(irp);
+	irpParam->offset = 0;
+	irpParam->type = directOperationEmpty;
+	irpParam->buffer = (char*)getIrpBuffer(irp);
+	if (ioStack->MajorFunction == IRP_MJ_READ)
+	{
+		irpParam->type = directOperationRead;
+		irpParam->size = ioStack->Parameters.Read.Length;
+		irpParam->offset = ioStack->Parameters.Read.ByteOffset.QuadPart;
+	}
+	else
+		if (ioStack->MajorFunction == IRP_MJ_WRITE)
+		{
+			irpParam->type = directOperationWrite;
+			irpParam->size = ioStack->Parameters.Write.Length;
+			irpParam->offset = ioStack->Parameters.Write.ByteOffset.QuadPart;
+		}
+	return;
+}
+
+NTSTATUS IrpHandlerdispatch(PIRP irp)
+{
+	PIO_STACK_LOCATION io_stack = IoGetCurrentIrpStackLocation(irp);
+	NTSTATUS status = STATUS_SUCCESS;
+	switch (io_stack->MajorFunction)
+	{
+	case IRP_MJ_CREATE:
+	case IRP_MJ_CLOSE:
+		irp->IoStatus.Status = STATUS_SUCCESS;
+		irp->IoStatus.Information = 0;
+		break;
+	case IRP_MJ_QUERY_VOLUME_INFORMATION:
+		DbgPrintEx(0,0,(__FUNCTION__" IRP_MJ_QUERY_VOLUME_INFORMATION\n"));
+		irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
+		irp->IoStatus.Information = 0;
+		status = STATUS_UNSUCCESSFUL;
+		break;
+	case IRP_MJ_DEVICE_CONTROL:
+		dispatchIoctl(irp);
+		break;
+	default:
+		DbgPrintEx(0, 0, (__FUNCTION__"Unknown MJ fnc = 0x%x\n", io_stack->MajorFunction));
+		status = STATUS_UNSUCCESSFUL;
+	}
+	return status;
+}
+
 NTSTATUS deleteDevice()
 {
 	IoDeleteDevice(IrpData.deviceObject_);
@@ -62,7 +111,7 @@ NTSTATUS deleteDevice()
 }
 
 
-NTSTATUS handle_read_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+NTSTATUS handle_read_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
 	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
@@ -77,7 +126,7 @@ NTSTATUS handle_read_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	return status;
 }
 
-NTSTATUS handle_write_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+NTSTATUS handle_write_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
 	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
@@ -92,7 +141,7 @@ NTSTATUS handle_write_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	return status;
 }
 
-NTSTATUS handle_ioctl_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+NTSTATUS handle_ioctl_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
 	NTSTATUS status = STATUS_SUCCESS;
@@ -114,7 +163,7 @@ NTSTATUS handle_ioctl_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	return status;
 }
 
-NTSTATUS handle_cleanup_request(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+NTSTATUS handle_cleanup_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
 	// Perform cleanup tasks (if needed) when a file handle to the virtual disk is closed.
@@ -168,7 +217,6 @@ NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 		PVOID buffer = Irp->AssociatedIrp.SystemBuffer;
 		ULONG outputBufferLength = ioStack->Parameters.DeviceIoControl.OutputBufferLength;
 		ULONG inputBufferLength = ioStack->Parameters.DeviceIoControl.InputBufferLength;
-		NTSTATUS status = STATUS_SUCCESS;
 		switch (code)
 		{
 		case CORE_MNT_MOUNT_IOCTL:
@@ -200,6 +248,9 @@ NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 
 NTSTATUS read_from_virtual_disk(char* buf, ULONG count, LARGE_INTEGER offset)
 {
+	UNREFERENCED_PARAMETER(buf);
+	UNREFERENCED_PARAMETER(count);
+	UNREFERENCED_PARAMETER(offset);
 	return STATUS_SUCCESS;
 }
 
@@ -269,9 +320,14 @@ NTSTATUS DispatchMount(PVOID buffer,
 		CoreMNTMountRequest* request = (CoreMNTMountRequest*)buffer;
 		UINT64 totalLength = request->totalLength;
 		CoreMNTMountResponse* response = (CoreMNTMountResponse*)buffer;
-		CreateVirtualDisk();
+		//CreateVirtualDisk();
 		response->deviceId = Mount(totalLength);
 		return STATUS_SUCCESS;
+	}
+	else
+	{
+		DbgPrintEx(0, 0, "DispatchMount() - buffer size mismatch");
+		return STATUS_UNSUCCESSFUL;
 	}
 }
 NTSTATUS DispatchExchange(PVOID buffer, ULONG inputBufferLength, ULONG outputBufferLength)
@@ -295,17 +351,25 @@ NTSTATUS DispatchExchange(PVOID buffer, ULONG inputBufferLength, ULONG outputBuf
 		memcpy(buffer, &response, sizeof(response));
 		return STATUS_SUCCESS;
 	}
+	else
+	{
+		DbgPrintEx(0, 0, "DispatchExchange() - buffer size mismatch");
+		return STATUS_UNSUCCESSFUL;
+	}
 }
 NTSTATUS DispatchUnmount(PVOID buffer, ULONG inputBufferLength, ULONG outputBufferLength)
 {
 	if (inputBufferLength >= sizeof(CoreMNTUnmountRequest))
 	{
 		CoreMNTUnmountRequest* request = (CoreMNTUnmountRequest*)buffer;
-		UnmountDisk(request->deviceId);
+		Unmount(request->deviceId);
 		return STATUS_SUCCESS;
 	}
 	else
+	{
+		DbgPrintEx(0, 0, "DispatchUnmount() - buffer size mismatch");
 		return STATUS_UNSUCCESSFUL;
+	}
 }
 
 
@@ -526,7 +590,7 @@ void dispatchIoctl(PIRP irp)
 			RtlInitUnicodeString(&deviceName, device_name_buffer);
 
 			devName->NameLength = deviceName.Length;
-			int outLength = sizeof(USHORT) + deviceName.Length;
+			USHORT outLength = sizeof(USHORT) + deviceName.Length;
 			if (io_stack->Parameters.DeviceIoControl.OutputBufferLength < outLength)
 			{
 				irp->IoStatus.Status = STATUS_BUFFER_OVERFLOW;
@@ -566,7 +630,7 @@ void dispatchIoctl(PIRP irp)
 			unique_id_length = uniqueId.Length;
 
 			mountDevId->UniqueIdLength = uniqueId.Length;
-			int outLength = sizeof(USHORT) + uniqueId.Length;
+			USHORT outLength = sizeof(USHORT) + uniqueId.Length;
 			if (io_stack->Parameters.DeviceIoControl.OutputBufferLength < outLength)
 			{
 				irp->IoStatus.Status = STATUS_BUFFER_OVERFLOW;
@@ -621,6 +685,17 @@ void dispatchIoctl(PIRP irp)
 	default:
 		KdPrint((__FUNCTION__"Unknown PNP minor function= 0x%x\n", io_stack->MinorFunction));
 	}
+}
+
+PVOID getIrpBuffer(PIRP irp)
+{
+	PVOID systemBuffer = 0;
+	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(irp);
+	if (ioStack->MajorFunction == IRP_MJ_READ || ioStack->MajorFunction == IRP_MJ_WRITE)
+		systemBuffer = MmGetSystemAddressForMdlSafe(irp->MdlAddress, NormalPagePriority);
+	else
+		systemBuffer = irp->AssociatedIrp.SystemBuffer;
+	return systemBuffer;
 }
 
 //void xorEncrypt(char message[], const char key[])

@@ -39,6 +39,7 @@ typedef struct _MOUNTDEV_UNIQUE_ID_CHANGE_NOTIFY_OUTPUT {
 } MOUNTDEV_UNIQUE_ID_CHANGE_NOTIFY_OUTPUT, * PMOUNTDEV_UNIQUE_ID_CHANGE_NOTIFY_OUTPUT;
 
 
+#define MAX_SIZE 25
 
 typedef struct CORE_MNT_MOUNT_REQUEST
 {
@@ -72,3 +73,14 @@ typedef struct CORE_MNT_UNMOUNT_REQUEST
 {
 	ULONG32 deviceId;
 }CoreMNTUnmountRequest;
+
+
+typedef enum _DiskOperationType
+{
+	directOperationSuccess = 0,
+	directOperationEmpty = 0,
+	directOperationRead,
+	directOperationWrite,
+	directOperationFail,
+	directOperationMax = directOperationFail
+}DiskOperationType;

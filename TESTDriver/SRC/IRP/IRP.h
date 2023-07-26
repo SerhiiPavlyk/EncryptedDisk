@@ -1,28 +1,27 @@
 #pragma once
 #include "MountManager/MountManager.h"
 
-struct IrpParam
+typedef struct IrpParametrs
 {
 	int type;
 	UINT32 size;
 	UINT64 offset;
 	char* buffer;
-};
+}IrpParam;
 
-typedef struct IrpHandlerStruct {
-	UINT32 devId_;
-	UINT64 totalLength_;
-	PDEVICE_OBJECT  deviceObject_;
-}IrpStruct;
 
-NTSTATUS IrpHandlerInit(int devId,
+
+NTSTATUS IrpHandlerInit(UINT32 devId,
 	UINT64 totalLength,
-	PDRIVER_OBJECT DriverObject,
-	MountManager* mountManager);
+	PDRIVER_OBJECT DriverObject);
 
 IrpStruct IrpData;
 
+void IrpHandlergetIrpParam(PIRP irp, IrpParam* irpParam);
+NTSTATUS IrpHandlerdispatch(PIRP irp);
 
+void dispatchIoctl(PIRP irp);
+PVOID getIrpBuffer(PIRP irp);
 
 NTSTATUS deleteDevice();
 

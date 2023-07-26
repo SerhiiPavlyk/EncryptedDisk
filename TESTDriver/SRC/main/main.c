@@ -82,6 +82,9 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 
 	MountManagerInit(DriverObject);
 	return status;
+
+
+	/* Driver initialization are done */
 }
 
 

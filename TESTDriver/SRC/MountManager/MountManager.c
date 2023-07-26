@@ -5,64 +5,39 @@
 NTSTATUS MountManagerInit(PDRIVER_OBJECT DriverObject)
 {
 	DataOfMountManager.DriverObject = DriverObject;
-	DataOfMountManager.gDiskCount = 0;
+	DataOfMountManager.gMountedDiskCount = 0;
 	ExInitializeFastMutex(&DataOfMountManager.diskMapLock_);
 	DataOfMountManager.isInitializied = TRUE;
 }
 
 NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 {
-	PVIRTUALDISK disk;
+	PMOUNTEDDISK disk;
 
 	ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
 
-	for (size_t i = 0; i < DataOfMountManager.gDiskCount; i++)
+	for (INT32 i = 0; i < DataOfMountManager.gMountedDiskCount; i++)
 	{
-		if (devId == DiskList[i].devID.deviceId)
+		if (devId == MountDiskList[i].irpDispatcher.devId_.deviceId)
 		{
 			devId = i;
 		}
-		if (devId + 1 == DataOfMountManager.gDiskCount)
+		if (devId + 1 == DataOfMountManager.gMountedDiskCount)
 		{
 			irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
 			IoCompleteRequest(irp, IO_NO_INCREMENT);
 			return STATUS_DEVICE_NOT_READY;
 		}
 	}
-	disk = DiskList + devId;
+	disk = MountDiskList + devId;
 	ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 	return STATUS_SUCCESS;
 
 	//return disk->DispatchIrp(irp);
 }
 
-int Mount(UINT64 totalLength)
-{
-	// generate id
-	int devId = 0;
-	{
-		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-		if (DataOfMountManager.gDiskCount < 25)
-		{
-			devId = DataOfMountManager.gDiskCount++;
-		}
-		else
-		{
-			DbgPrintEx(0,0, "__FUNCTION__ - device ID already exist.");
-		}
-	}
-	/*boost::shared_ptr<MountedDisk> disk(
-		new MountedDisk(driverObject_, this, devId, totalLength));
-	AutoMutex guard(diskMapLock_);
-	MountedDiskMapPairIB pairIb =
-		diskMap_.insert(std::make_pair(devId, disk));
-	if (!pairIb.second)
-		throw std::exception(__FUNCTION__" - device ID already exist.");
-	ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);*/
-	return devId;
-}
 
-NTSTATUS MountDisk()
+/*NTSTATUS AddVirtualDisk()
 {
 	VIRTUALDISK disk;
 	disk.devID.deviceId = 0;
@@ -71,18 +46,18 @@ NTSTATUS MountDisk()
 
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-		int i = DataOfMountManager.gDiskCount + 1;
+		int i = DataOfMountManager.gVirtualDiskCount + 1;
 
 		if (i <= MAX_SIZE - 1)
 		{
-			DiskList[i] = disk; //учитывая то, что disk передается параметром, все данные о нем есть
-			disk.devID.deviceId = DataOfMountManager.gDiskCount++;
+			VirtDiskList[i] = disk; //учитывая то, что disk передается параметром, все данные о нем есть
+			disk.devID.deviceId = DataOfMountManager.gVirtualDiskCount++;
 
-			DbgPrint("Disk data successfully ADDED!\n");
+			DbgPrintEx(0,0,"VirtualDisk data successfully ADDED in array!\n");
 		}
 		else
 		{
-			DbgPrint("DiskList is full!\n");
+			DbgPrintEx(0,0,"VirtDiskList is full!\n");
 			ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 			return STATUS_UNSUCCESSFUL;
 		}
@@ -90,27 +65,113 @@ NTSTATUS MountDisk()
 		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 	}
 	return status;
-}
+}*/
 
-NTSTATUS UnmountDisk(UINT32 deviceId)			//ввиду того, что буква Тома выбирается в любом удобном порядке
+/*NTSTATUS RemoveVirtualDisk(UINT32 deviceId)      //ввиду того, что буква Тома выбирается в любом удобном порядке
 {
 
-	if (deviceId < DataOfMountManager.gDiskCount - 1)
+	if (deviceId < DataOfMountManager.gVirtualDiskCount - 1)
 	{
 
-		for (int i = deviceId; i < DataOfMountManager.gDiskCount - 1; ++i)
+		for (int i = deviceId; i < DataOfMountManager.gVirtualDiskCount - 1; ++i)
 		{
-			DiskList[deviceId] = DiskList[deviceId + 1];
+			VirtDiskList[deviceId] = VirtDiskList[deviceId + 1];
 		}
 
-		DataOfMountManager.gDiskCount--;
-		DbgPrint("Disk successfully deleted!\n");
+		DataOfMountManager.gVirtualDiskCount--;
+		DbgPrintEx(0,0,"Disk successfully deleted!\n");
 		return STATUS_SUCCESS;
 
 	}
-	else if (deviceId == DataOfMountManager.gDiskCount)
+	else if (deviceId == DataOfMountManager.gVirtualDiskCount)
 	{
-		DataOfMountManager.gDiskCount--;				//просто уменьшаем число созданных дисков, чтобы
+		DataOfMountManager.gVirtualDiskCount--;        //просто уменьшаем число созданных дисков, чтобы
+					  // 1. при показе всех дисков последний не показывался
+					  // 2. при создании нового диска, данные перепишутся поверх последнего диска, который "удалили"
+					  // P.S. возможно это не лучший вариант :)
+
+		DbgPrintEx(0,0,"Disk successfully deleted!\n");
+		return STATUS_SUCCESS;
+	}
+	else
+	{
+		DbgPrintEx(0,0,"Invalid parameter - disk NOT FOUND");
+		return STATUS_INVALID_PARAMETER;
+	}
+}*/
+
+
+int Mount(UINT64 totalLength)
+{
+	//generate id
+	UINT32 devId = 0;
+	{
+		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
+		if (DataOfMountManager.gMountedDiskCount < MAX_SIZE - 2)
+		{
+			devId = DataOfMountManager.gMountedDiskCount++;
+		}
+		else
+		{
+			DbgPrintEx(0, 0, "FUNCTION - device ID already exist\n");
+		}
+	}
+
+	PMOUNTEDDISK disk = (PMOUNTEDDISK)ExAllocatePoolWithTag(NonPagedPool, sizeof(MOUNTEDDISK), "mntDisk");
+	if (disk == NULL)
+	{
+		DbgPrintEx(0, 0, "Failed to mount disk\n");
+		return -1;
+	}
+
+	disk->irpDispatcher.totalLength_ = totalLength;
+	disk->irpDispatcher.deviceObject_ = DataOfMountManager.DriverObject; // ?????
+	disk->irpDispatcher.devId_.deviceId = devId;
+	//disk->FileName=                   =================С ним сейчас что-то делаем?=============
+
+	{
+		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
+		int i = DataOfMountedDisk.gMountedDiskCount + 1;
+
+		if (i <= MAX_SIZE - 1)
+		{
+			MountDiskList[i] = *disk;
+			disk->irpDispatcher.devId_.deviceId = DataOfMountedDisk.gMountedDiskCount++;
+			DbgPrintEx(0, 0, "MountedDisk data successfully ADDED in array!\n");
+		}
+		else
+		{
+			DbgPrintEx(0, 0, "VirtDiskList is full!\n");
+			ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
+			ExFreePoolWithTag(disk, "mntDisk");
+			return -1;
+		}
+
+		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
+	}
+	ExFreePoolWithTag(disk, "mntDisk");
+	return devId;
+}
+
+VOID Unmount(UINT32 deviceId)			//ввиду того, что буква Тома выбирается в любом удобном порядке
+{
+	ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
+	if (deviceId < DataOfMountManager.gMountedDiskCount - 1)
+	{
+
+		for (INT32 i = deviceId; i < DataOfMountManager.gMountedDiskCount - 1; ++i)
+		{
+			MountDiskList[deviceId] = MountDiskList[deviceId + 1];
+		}
+
+		DataOfMountManager.gMountedDiskCount--;
+		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
+		DbgPrint("Disk successfully deleted!\n");
+
+	}
+	else if (deviceId == DataOfMountManager.gMountedDiskCount)
+	{
+		DataOfMountManager.gMountedDiskCount--;				//просто уменьшаем число созданных дисков, чтобы
 									// 1. при показе всех дисков последний не показывался
 									// 2. при создании нового диска, данные перепишутся поверх последнего диска, который "удалили"
 									// P.S. возможно это не лучший вариант :)
@@ -136,15 +197,15 @@ VOID MountManagerRequestExchange(UINT32 devID,
 	UINT32* length,
 	UINT64* offset)
 {
-	PVIRTUALDISK disk = NULL;
+	PMOUNTEDDISK disk = NULL;
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-		for (int i = 0; i < DataOfMountManager.gDiskCount; ++i)
+		for (INT32 i = 0; i < DataOfMountManager.gMountedDiskCount; ++i)
 		{
-			if (devID == DiskList[i].devID.deviceId)
+			if (devID == MountDiskList[i].irpDispatcher.devId_.deviceId)
 			{
 				DbgPrintEx(0, 0, "RequestExchange() - disk FOUND\n");
-				disk = &DiskList[i];
+				disk = &MountDiskList[i];
 				break;
 			}
 		}
