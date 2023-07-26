@@ -13,23 +13,22 @@ NTSTATUS IrpHandlerInit(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverO
 	IrpData.totalLength_ = totalLength;
 	PDEVICE_OBJECT deviceObject = NULL;
 	NTSTATUS status = STATUS_SUCCESS;
-	//UNICODE_STRING deviceName;
-	//WCHAR device_name_buffer[MAXIMUM_FILENAME_LENGTH];
+	UNICODE_STRING deviceName;
+	WCHAR device_name_buffer[MAXIMUM_FILENAME_LENGTH];
 
 	//form device name
-	UNICODE_STRING gDeviceName = RTL_CONSTANT_STRING(L"\\Device\\disk0");
 
-		//RtlStringCbPrintfW(device_name_buffer,
-		//	sizeof(device_name_buffer),
-		//	DIRECT_DISK_PREFIX L"%u",
-		//	IrpData.devId_.deviceId);
-		//RtlInitUnicodeString(&deviceName, device_name_buffer);
+		RtlStringCbPrintfW(device_name_buffer,
+			sizeof(device_name_buffer),
+			L"\\Device\\disk" L"%u",
+			IrpData.devId_.deviceId);
+		RtlInitUnicodeString(&deviceName, device_name_buffer);
 
 	ULONG size = sizeof(DeviceId);
 	//create device
 	status = IoCreateDevice(DriverObject,
 		size,
-		&gDeviceName,
+		&deviceName,
 		FILE_DEVICE_DISK,
 		0,
 		FALSE,
@@ -50,12 +49,12 @@ NTSTATUS IrpHandlerInit(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverO
 
 	deviceObject->Flags |= DO_DIRECT_IO;
 	deviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
-	Mdisk->FileName = gDeviceName;
+	Mdisk->FileName = deviceName;
 	Mdisk->irpDispatcher = IrpData;
 	return status;
 }
 
-void IrpHandlergetIrpParam(PIRP irp, IrpParam* irpParam)
+void IrpHandlerGetIrpParam(PIRP irp, IrpParam* irpParam)
 {
 	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(irp);
 	irpParam->offset = 0;
@@ -79,9 +78,9 @@ void IrpHandlergetIrpParam(PIRP irp, IrpParam* irpParam)
 
 NTSTATUS IrpHandlerdispatch(PIRP irp)
 {
-	PIO_STACK_LOCATION io_stack = IoGetCurrentIrpStackLocation(irp);
+	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(irp);
 	NTSTATUS status = STATUS_SUCCESS;
-	switch (io_stack->MajorFunction)
+	switch (ioStack->MajorFunction)
 	{
 	case IRP_MJ_CREATE:
 	case IRP_MJ_CLOSE:
@@ -98,7 +97,7 @@ NTSTATUS IrpHandlerdispatch(PIRP irp)
 		dispatchIoctl(irp);
 		break;
 	default:
-		DbgPrintEx(0, 0, (__FUNCTION__"Unknown MJ fnc = 0x%x\n", io_stack->MajorFunction));
+		DbgPrintEx(0, 0, (__FUNCTION__"Unknown MJ fnc = 0x%x\n", ioStack->MajorFunction));
 		status = STATUS_UNSUCCESSFUL;
 	}
 	return status;
@@ -122,7 +121,7 @@ NTSTATUS handle_read_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 	NTSTATUS status = read_from_virtual_disk((char*)Irp->AssociatedIrp.SystemBuffer, bytesToRead, offset);
 	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = NT_SUCCESS(status) ? bytesToRead : 0;
-	DbgPrint("Dummy Driver: handle_read_request\n");
+	DbgPrintEx(0,0,"Dummy Driver: handle_read_request\n");
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 	return status;
 }
@@ -137,7 +136,7 @@ NTSTATUS handle_write_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 	NTSTATUS status = write_request((const char*)Irp->AssociatedIrp.SystemBuffer, bytesToWrite, offset);
 	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = NT_SUCCESS(status) ? bytesToWrite : 0;
-	DbgPrint("Dummy Driver: handle_write_request\n");
+	DbgPrintEx(0,0,"Dummy Driver: handle_write_request\n");
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 	return status;
 }
@@ -159,7 +158,7 @@ NTSTATUS handle_ioctl_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 
 	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = 0;
-	DbgPrint("Dummy Driver: handle_ioctl_request\n");
+	DbgPrintEx(0,0,"Dummy Driver: handle_ioctl_request\n");
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 	return status;
 }
@@ -170,7 +169,7 @@ NTSTATUS handle_cleanup_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 	// Perform cleanup tasks (if needed) when a file handle to the virtual disk is closed.
 	Irp->IoStatus.Status = STATUS_SUCCESS;
 	Irp->IoStatus.Information = 0;
-	DbgPrint("Dummy Driver: handle_cleanup_request\n");
+	DbgPrintEx(0,0,"Dummy Driver: handle_cleanup_request\n");
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 	return STATUS_SUCCESS;
 }
@@ -179,69 +178,6 @@ NTSTATUS CompleteIrp(PIRP Irp, NTSTATUS status, ULONG info)
 	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = info;
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
-	return status;
-}
-
-NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
-{
-	NTSTATUS status = STATUS_SUCCESS;
-	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
-	DbgBreakPoint();
-	//disk
-	switch (ioStack->MajorFunction)
-	{
-
-		//case IRP_MJ_READ:
-		//	status = handle_read_request(DeviceObject, Irp);
-		//	//xorEncrypt
-		//	break;
-		//case IRP_MJ_WRITE:
-		//	status = handle_write_request(DeviceObject, Irp);
-		//	//xorEncrypt
-		//	break;
-		//case IRP_MJ_DEVICE_CONTROL:
-		//	status = handle_ioctl_request(DeviceObject, Irp);
-		//	break;
-		//	//case://autorth
-		//		//create disk
-		//		//mount 
-		//		//unmount
-
-
-	case IRP_MJ_CREATE:
-	case IRP_MJ_CLOSE:
-	case IRP_MJ_CLEANUP:
-		return CompleteIrp(Irp, STATUS_SUCCESS, 0);
-	case IRP_MJ_DEVICE_CONTROL:
-	{
-		ULONG code = ioStack->Parameters.DeviceIoControl.IoControlCode;
-		PVOID buffer = Irp->AssociatedIrp.SystemBuffer;
-		ULONG outputBufferLength = ioStack->Parameters.DeviceIoControl.OutputBufferLength;
-		ULONG inputBufferLength = ioStack->Parameters.DeviceIoControl.InputBufferLength;
-		switch (code)
-		{
-		case CORE_MNT_MOUNT_IOCTL:
-			status = DispatchMount(buffer, inputBufferLength, outputBufferLength);
-			DbgPrintEx(0, 0, "Dummy Driver: CORE_MNT_MOUNT_IOCTL\n");
-			break;
-		case CORE_MNT_EXCHANGE_IOCTL:
-			status = DispatchExchange(buffer, inputBufferLength, outputBufferLength);
-			break;
-		case CORE_MNT_UNMOUNT_IOCTL:
-			status = DispatchUnmount(buffer, inputBufferLength, outputBufferLength);
-			break;
-		}
-		return CompleteIrp(Irp, status, outputBufferLength);
-	}
-
-	default:
-		status = STATUS_INVALID_DEVICE_REQUEST;
-		Irp->IoStatus.Status = status;
-		Irp->IoStatus.Information = 0;
-		IoCompleteRequest(Irp, IO_NO_INCREMENT);
-		break;
-	}
-
 	return status;
 }
 
@@ -280,7 +216,7 @@ NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offse
 
 	if (status != STATUS_SUCCESS)
 	{
-		DbgBreakPoint();
+		//DbgBreak()Point();
 		DbgPrintEx(0, 0, "ZwOpenFile() FAILED!\n");
 		return status;
 	}
@@ -292,7 +228,7 @@ NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offse
 	if (!NT_SUCCESS(status))
 	{
 		DbgPrintEx(0, 0, "ZwSetInformationFile() FAILED!\n");
-		DbgPrint("Failed to set file pointer: 0x%X\n", status);
+		DbgPrintEx(0,0,"Failed to set file pointer: 0x%X\n", status);
 		return status;
 	}
 
@@ -301,7 +237,7 @@ NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offse
 
 	if (!NT_SUCCESS(status))
 	{
-		DbgPrint("Failed to write to file: 0x%X\n", status);
+		DbgPrintEx(0,0,"Failed to write to file: 0x%X\n", status);
 		return status;
 	}
 	//ZwClose();
@@ -309,79 +245,17 @@ NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offse
 }
 
 
-NTSTATUS DispatchMount(PVOID buffer,
-	ULONG inputBufferLength,
-	ULONG outputBufferLength)
-{
 
-	if (inputBufferLength >= sizeof(CoreMNTMountRequest) ||
-		outputBufferLength >= sizeof(CoreMNTMountResponse))
-	{
-
-		CoreMNTMountRequest* request = (CoreMNTMountRequest*)buffer;
-		UINT64 totalLength = request->totalLength;
-		CoreMNTMountResponse* response = (CoreMNTMountResponse*)buffer;
-		//CreateVirtualDisk();
-		response->deviceId = Mount(totalLength);
-		return STATUS_SUCCESS;
-	}
-	else
-	{
-		DbgPrintEx(0, 0, "DispatchMount() - buffer size mismatch");
-		return STATUS_UNSUCCESSFUL;
-	}
-}
-NTSTATUS DispatchExchange(PVOID buffer, ULONG inputBufferLength, ULONG outputBufferLength)
-{
-
-	if (inputBufferLength >= sizeof(CoreMNTExchangeRequest) ||
-		outputBufferLength >= sizeof(CoreMNTExchangeResponse))
-	{
-		CoreMNTExchangeRequest* request = (CoreMNTExchangeRequest*)buffer;
-
-		CoreMNTExchangeResponse response = { 0 };
-		MountManagerRequestExchange(request->deviceId,
-			request->lastType,
-			request->lastStatus,
-			request->lastSize,
-			request->data,
-			request->dataSize,
-			&response.type,
-			&response.size,
-			&response.offset);
-		memcpy(buffer, &response, sizeof(response));
-		return STATUS_SUCCESS;
-	}
-	else
-	{
-		DbgPrintEx(0, 0, "DispatchExchange() - buffer size mismatch");
-		return STATUS_UNSUCCESSFUL;
-	}
-}
-NTSTATUS DispatchUnmount(PVOID buffer, ULONG inputBufferLength, ULONG outputBufferLength)
-{
-	if (inputBufferLength >= sizeof(CoreMNTUnmountRequest))
-	{
-		CoreMNTUnmountRequest* request = (CoreMNTUnmountRequest*)buffer;
-		Unmount(request->deviceId);
-		return STATUS_SUCCESS;
-	}
-	else
-	{
-		DbgPrintEx(0, 0, "DispatchUnmount() - buffer size mismatch");
-		return STATUS_UNSUCCESSFUL;
-	}
-}
 
 
 void dispatchIoctl(PIRP irp)
 {
-	PIO_STACK_LOCATION io_stack = IoGetCurrentIrpStackLocation(irp);
-	ULONG code = io_stack->Parameters.DeviceIoControl.IoControlCode;
+	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(irp);
+	ULONG code = ioStack->Parameters.DeviceIoControl.IoControlCode;
 	switch (code)
 	{
 	case IOCTL_DISK_GET_DRIVE_LAYOUT:
-		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength <
+		if (ioStack->Parameters.DeviceIoControl.OutputBufferLength <
 			sizeof(DRIVE_LAYOUT_INFORMATION))
 		{
 			irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
@@ -422,7 +296,7 @@ void dispatchIoctl(PIRP irp)
 		PDISK_GEOMETRY  disk_geometry;
 		ULONGLONG       length;
 
-		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength <
+		if (ioStack->Parameters.DeviceIoControl.OutputBufferLength <
 			sizeof(DISK_GEOMETRY))
 		{
 			irp->IoStatus.Status = STATUS_BUFFER_TOO_SMALL;
@@ -443,7 +317,7 @@ void dispatchIoctl(PIRP irp)
 	case IOCTL_DISK_GET_LENGTH_INFO:
 	{
 		PGET_LENGTH_INFORMATION get_length_information;
-		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength <
+		if (ioStack->Parameters.DeviceIoControl.OutputBufferLength <
 			sizeof(GET_LENGTH_INFORMATION))
 		{
 			irp->IoStatus.Status = STATUS_BUFFER_TOO_SMALL;
@@ -461,7 +335,7 @@ void dispatchIoctl(PIRP irp)
 	{
 		PPARTITION_INFORMATION  partition_information;
 		ULONGLONG               length;
-		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength <
+		if (ioStack->Parameters.DeviceIoControl.OutputBufferLength <
 			sizeof(PARTITION_INFORMATION))
 		{
 			irp->IoStatus.Status = STATUS_BUFFER_TOO_SMALL;
@@ -487,7 +361,7 @@ void dispatchIoctl(PIRP irp)
 	{
 		PPARTITION_INFORMATION_EX   partition_information_ex;
 		ULONGLONG                   length;
-		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength <
+		if (ioStack->Parameters.DeviceIoControl.OutputBufferLength <
 			sizeof(PARTITION_INFORMATION_EX))
 		{
 			irp->IoStatus.Status = STATUS_BUFFER_TOO_SMALL;
@@ -526,7 +400,7 @@ void dispatchIoctl(PIRP irp)
 	case IOCTL_CDROM_READ_TOC:
 	{
 		PCDROM_TOC cdrom_toc;
-		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength <
+		if (ioStack->Parameters.DeviceIoControl.OutputBufferLength <
 			sizeof(CDROM_TOC))
 		{
 			irp->IoStatus.Status = STATUS_BUFFER_TOO_SMALL;
@@ -544,7 +418,7 @@ void dispatchIoctl(PIRP irp)
 	}
 	case IOCTL_DISK_SET_PARTITION_INFO:
 	{
-		if (io_stack->Parameters.DeviceIoControl.InputBufferLength <
+		if (ioStack->Parameters.DeviceIoControl.InputBufferLength <
 			sizeof(SET_PARTITION_INFORMATION))
 		{
 			irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
@@ -558,7 +432,7 @@ void dispatchIoctl(PIRP irp)
 	case IOCTL_DISK_VERIFY:
 	{
 		PVERIFY_INFORMATION verify_information;
-		if (io_stack->Parameters.DeviceIoControl.InputBufferLength <
+		if (ioStack->Parameters.DeviceIoControl.InputBufferLength <
 			sizeof(VERIFY_INFORMATION))
 		{
 			irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
@@ -572,7 +446,7 @@ void dispatchIoctl(PIRP irp)
 	}
 	case IOCTL_MOUNTDEV_QUERY_DEVICE_NAME:
 	{
-		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength < sizeof(MOUNTDEV_NAME))
+		if (ioStack->Parameters.DeviceIoControl.OutputBufferLength < sizeof(MOUNTDEV_NAME))
 		{
 			irp->IoStatus.Information = sizeof(MOUNTDEV_NAME);
 			irp->IoStatus.Status = STATUS_BUFFER_OVERFLOW;
@@ -592,7 +466,7 @@ void dispatchIoctl(PIRP irp)
 
 			devName->NameLength = deviceName.Length;
 			USHORT outLength = sizeof(USHORT) + deviceName.Length;
-			if (io_stack->Parameters.DeviceIoControl.OutputBufferLength < outLength)
+			if (ioStack->Parameters.DeviceIoControl.OutputBufferLength < outLength)
 			{
 				irp->IoStatus.Status = STATUS_BUFFER_OVERFLOW;
 				irp->IoStatus.Information = sizeof(MOUNTDEV_NAME);
@@ -608,7 +482,7 @@ void dispatchIoctl(PIRP irp)
 	break;
 	case IOCTL_MOUNTDEV_QUERY_UNIQUE_ID:
 	{
-		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength < sizeof(MOUNTDEV_UNIQUE_ID))
+		if (ioStack->Parameters.DeviceIoControl.OutputBufferLength < sizeof(MOUNTDEV_UNIQUE_ID))
 		{
 			irp->IoStatus.Information = sizeof(MOUNTDEV_UNIQUE_ID);
 			irp->IoStatus.Status = STATUS_BUFFER_OVERFLOW;
@@ -632,7 +506,7 @@ void dispatchIoctl(PIRP irp)
 
 			mountDevId->UniqueIdLength = uniqueId.Length;
 			USHORT outLength = sizeof(USHORT) + uniqueId.Length;
-			if (io_stack->Parameters.DeviceIoControl.OutputBufferLength < outLength)
+			if (ioStack->Parameters.DeviceIoControl.OutputBufferLength < outLength)
 			{
 				irp->IoStatus.Status = STATUS_BUFFER_OVERFLOW;
 				irp->IoStatus.Information = sizeof(MOUNTDEV_UNIQUE_ID);
@@ -660,7 +534,7 @@ void dispatchIoctl(PIRP irp)
 	}
 	case IOCTL_STORAGE_GET_HOTPLUG_INFO:
 	{
-		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength <
+		if (ioStack->Parameters.DeviceIoControl.OutputBufferLength <
 			sizeof(STORAGE_HOTPLUG_INFO))
 		{
 			irp->IoStatus.Status = STATUS_BUFFER_TOO_SMALL;
@@ -684,7 +558,7 @@ void dispatchIoctl(PIRP irp)
 		irp->IoStatus.Information = 0;
 		break;
 	default:
-		KdPrint((__FUNCTION__"Unknown PNP minor function= 0x%x\n", io_stack->MinorFunction));
+		DbgPrintEx(0,0,"Unknown PNP minor function= 0x%x\n", ioStack->MinorFunction);
 	}
 }
 

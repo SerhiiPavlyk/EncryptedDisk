@@ -24,6 +24,7 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 		}
 		if (devId + 1 == DataOfMountManager.gMountedDiskCount)
 		{
+			
 			irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
 			IoCompleteRequest(irp, IO_NO_INCREMENT);
 			return STATUS_DEVICE_NOT_READY;
@@ -31,9 +32,10 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 	}
 	disk = MountDiskList + devId;
 	ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-	return STATUS_SUCCESS;
 
-	//return disk->DispatchIrp(irp);
+
+	return MountedDiskDispatchIrp(irp);
+
 }
 
 
@@ -132,25 +134,28 @@ int Mount(UINT64 totalLength)
 	};
 
 
+	//DbgBreak()Point();
 
-	UNICODE_STRING gSymbolicLinkName = RTL_CONSTANT_STRING(L"\\Device\\Symbolic_Link_Name_TEST");
-	disk->irpDispatcher.deviceObject_->Size = 2000LL * 1024;
+	/*UNICODE_STRING gSymbolicLinkName = RTL_CONSTANT_STRING(L"\\Device\\disk0");
 
-	if (IoCreateSymbolicLink(&gSymbolicLinkName, &disk->FileName) != STATUS_SUCCESS)
+	
+	NTSTATUS status = IoCreateSymbolicLink(&gSymbolicLinkName, &disk->FileName);
+	if (status != STATUS_SUCCESS)
 	{
-		DbgPrint("IoCreateSymbolicLink fail!\n");
+		DbgPrintEx(0,0,"IoCreateSymbolicLink fail!\n");
 		return STATUS_FAILED_DRIVER_ENTRY;
-	}
+	}*/
 
+	disk->irpDispatcher.deviceObject_->Size = 2000LL * 1024;
 
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-		int i = DataOfMountedDisk.gMountedDiskCount + 1;
+		int i = DataOfMountManager.gMountedDiskCount;
 
 		if (i <= MAX_SIZE - 1)
 		{
 			MountDiskList[i] = *disk;
-			disk->irpDispatcher.devId_.deviceId = DataOfMountedDisk.gMountedDiskCount++;
+			disk->irpDispatcher.devId_.deviceId = DataOfMountManager.gMountedDiskCount++;
 			DbgPrintEx(0, 0, "MountedDisk data successfully ADDED in array!\n");
 		}
 		else
@@ -180,7 +185,7 @@ VOID Unmount(UINT32 deviceId)			//ввиду того, что буква “ома выбираетс€ в любом 
 
 		DataOfMountManager.gMountedDiskCount--;
 		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-		DbgPrint("Disk successfully deleted!\n");
+		DbgPrintEx(0,0,"Disk successfully deleted!\n");
 
 	}
 	else if (deviceId == DataOfMountManager.gMountedDiskCount)
@@ -190,12 +195,12 @@ VOID Unmount(UINT32 deviceId)			//ввиду того, что буква “ома выбираетс€ в любом 
 									// 2. при создании нового диска, данные перепишутс€ поверх последнего диска, который "удалили"
 									// P.S. возможно это не лучший вариант :)
 
-		DbgPrint("Disk successfully deleted!\n");
+		DbgPrintEx(0,0,"Disk successfully deleted!\n");
 		return STATUS_SUCCESS;
 	}
 	else
 	{
-		DbgPrint("Invalid parameter - disk NOT FOUND");
+		DbgPrintEx(0,0,"Invalid parameter - disk NOT FOUND");
 		return STATUS_INVALID_PARAMETER;
 	}
 }
@@ -227,8 +232,10 @@ VOID MountManagerRequestExchange(UINT32 devID,
 	}
 	if (disk == NULL)
 	{
-		DbgPrint("RequestExchange() - Disk NOT FOUND\n");
+		DbgPrintEx(0,0,"RequestExchange() - Disk NOT FOUND\n");
 	}
 
 	//а дальше то че????
 }
+
+

@@ -1,5 +1,16 @@
 #pragma once
-#include "MountManager/MountManager.h"
+
+
+typedef struct DiskDevExt
+{
+	UINT32 deviceId;
+}DeviceId, * PDeviceId;
+
+typedef struct IrpHandlerStruct {
+	DeviceId devId_;
+	UINT64 totalLength_;
+	PDEVICE_OBJECT  deviceObject_;
+}IrpStruct;
 
 typedef struct IrpParametrs
 {
@@ -9,6 +20,18 @@ typedef struct IrpParametrs
 	char* buffer;
 }IrpParam;
 
+typedef struct MountedDisk
+{
+	IrpStruct irpDispatcher;
+	PIRP pIrp;
+	//LARGE_INTEGER size;				//в IrpStruct irpDispatcher
+	UNICODE_STRING FileName;
+	//PDEVICE_OBJECT obj;					//в IrpStruct irpDispatcher
+	CHAR Letter;
+	//DeviceId devID;				//в IrpStruct irpDispatcher
+	PUNICODE_STRING password;
+	//что-то типа мапы для хранения дисков. добавляются/удаляются диски при монтировании/демонтировании
+} MOUNTEDDISK, * PMOUNTEDDISK;
 
 
 NTSTATUS IrpHandlerInit(UINT32 devId,
@@ -18,7 +41,7 @@ NTSTATUS IrpHandlerInit(UINT32 devId,
 
 IrpStruct IrpData;
 
-void IrpHandlergetIrpParam(PIRP irp, IrpParam* irpParam);
+void IrpHandlerGetIrpParam(PIRP irp, IrpParam* irpParam);
 NTSTATUS IrpHandlerdispatch(PIRP irp);
 
 void dispatchIoctl(PIRP irp);
@@ -40,18 +63,6 @@ NTSTATUS handle_ioctl_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
 // IRP_MJ_CLEANUP handler
 NTSTATUS handle_cleanup_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
 
-NTSTATUS DispatchMount(PVOID buffer,
-	ULONG inputBufferLength,
-	ULONG outputBufferLength);
-NTSTATUS DispatchExchange(PVOID buffer,
-	ULONG inputBufferLength,
-	ULONG outputBufferLength);
-NTSTATUS DispatchUnmount(PVOID buffer,
-	ULONG inputBufferLength,
-	ULONG outputBufferLength);
-
-// Dispatch routine to handle IRPs
-NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
 
 NTSTATUS CompleteIrp(PIRP Irp, NTSTATUS status, ULONG info);
 

@@ -1,7 +1,6 @@
 #pragma once
 //#include "VirtualDisk/VirtualDisk.h"
 #include "MountedDisk/MountedDisk.h"
-#include "IRP/IRP.h"
 typedef struct MManager
 {
 	UINT32 gMountedDiskCount;   //счетчик дисков, глобальная переменная
@@ -31,6 +30,7 @@ VOID MountManagerRequestExchange(UINT32 devID,
 	UINT32* type,
 	UINT32* length,
 	UINT64* offset);
+
 
 
 //NTSTATUS RemoveVirtualDisk(UINT32 deviceId);

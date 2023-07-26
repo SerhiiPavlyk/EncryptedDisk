@@ -21,7 +21,7 @@
 //
 //	InitializeObjectAttributes(&objectAttributes, &dirName, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, NULL, NULL);
 //
-//	DbgBreakPoint();
+//	//DbgBreak()Point();
 //
 //	// Создание файла виртуального диска
 //	status = ZwCreateFile(&fileHandle,              // 
