@@ -7,7 +7,7 @@
 // system set a letter
 // notify system
 
-NTSTATUS IrpHandlerInit(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverObject, PMOUNTEDDISK Mdisk)
+NTSTATUS IrpHandlerInit(UINT32 devId, UINT32 totalLength, PDRIVER_OBJECT DriverObject, PMOUNTEDDISK Mdisk)
 {
 	IrpData.devId_.deviceId = devId;
 	IrpData.totalLength_ = totalLength;
@@ -41,7 +41,7 @@ NTSTATUS IrpHandlerInit(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverO
 	}
 
 	IrpData.deviceObject_ = deviceObject;
-
+	//DbgBreakPoint();
 	DeviceId* devExt = (DeviceId*)deviceObject->DeviceExtension;
 	memset(devExt, 0, sizeof(DeviceId));
 
@@ -49,7 +49,17 @@ NTSTATUS IrpHandlerInit(UINT32 devId, UINT64 totalLength, PDRIVER_OBJECT DriverO
 
 	deviceObject->Flags |= DO_DIRECT_IO;
 	deviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
-	Mdisk->FileName = deviceName;
+	Mdisk->FileName.Buffer = (WCHAR*)ExAllocatePool(NonPagedPool, deviceName.Length);
+	if (!Mdisk->FileName.Buffer)
+	{
+		// Handle allocation failure
+		return STATUS_INSUFFICIENT_RESOURCES;
+	}
+	// Copy the contents of deviceName to Mdisk->FileName
+	Mdisk->FileName.Length = deviceName.Length;
+	Mdisk->FileName.MaximumLength = deviceName.Length;
+	RtlCopyUnicodeString(&Mdisk->FileName, &deviceName);
+
 	Mdisk->irpDispatcher = IrpData;
 	return status;
 }
@@ -80,6 +90,7 @@ NTSTATUS IrpHandlerdispatch(PIRP irp)
 {
 	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(irp);
 	NTSTATUS status = STATUS_SUCCESS;
+	//DbgBreakPoint();
 	switch (ioStack->MajorFunction)
 	{
 	case IRP_MJ_CREATE:
@@ -95,6 +106,12 @@ NTSTATUS IrpHandlerdispatch(PIRP irp)
 		break;
 	case IRP_MJ_DEVICE_CONTROL:
 		dispatchIoctl(irp);
+		status = irp->IoStatus.Status;
+		if (status != STATUS_SUCCESS)
+		{
+			DbgPrintEx(0, 0, "dispatchIoctl fail  IRP = 100 line");
+		}
+		
 		break;
 	default:
 		DbgPrintEx(0, 0, (__FUNCTION__"Unknown MJ fnc = 0x%x\n", ioStack->MajorFunction));
@@ -558,7 +575,7 @@ void dispatchIoctl(PIRP irp)
 		irp->IoStatus.Information = 0;
 		break;
 	default:
-		DbgPrintEx(0,0,"Unknown PNP minor function= 0x%x\n", ioStack->MinorFunction);
+		DbgPrintEx(0,0,"Unknown PNP major function= 0x%x\n", ioStack->MinorFunction);
 	}
 }
 

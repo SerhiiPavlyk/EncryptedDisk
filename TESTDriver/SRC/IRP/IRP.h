@@ -1,5 +1,5 @@
 #pragma once
-
+#include "ProtectedVector/ProtectedVector.h"
 
 typedef struct DiskDevExt
 {
@@ -8,7 +8,7 @@ typedef struct DiskDevExt
 
 typedef struct IrpHandlerStruct {
 	DeviceId devId_;
-	UINT64 totalLength_;
+	UINT32 totalLength_;
 	PDEVICE_OBJECT  deviceObject_;
 }IrpStruct;
 
@@ -16,7 +16,7 @@ typedef struct IrpParametrs
 {
 	int type;
 	UINT32 size;
-	UINT64 offset;
+	UINT32 offset;
 	char* buffer;
 }IrpParam;
 
@@ -30,12 +30,14 @@ typedef struct MountedDisk
 	CHAR Letter;
 	//DeviceId devID;				//в IrpStruct irpDispatcher
 	PUNICODE_STRING password;
-	//что-то типа мапы для хранения дисков. добавляются/удаляются диски при монтировании/демонтировании
+	KEVENT irpQueueNotEmpty_;
+	KEVENT stopEvent_;
+	Vector irpQueue_;
 } MOUNTEDDISK, * PMOUNTEDDISK;
 
 
 NTSTATUS IrpHandlerInit(UINT32 devId,
-	UINT64 totalLength,
+	UINT32 totalLength,
 	PDRIVER_OBJECT DriverObject,
 	PMOUNTEDDISK Mdisk);
 

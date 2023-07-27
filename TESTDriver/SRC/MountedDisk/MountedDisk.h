@@ -9,10 +9,13 @@
 
 
 
-
-
 MOUNTEDDISK MountDiskList[MAX_SIZE];
 
-MOUNTEDDISK DataOfMountedDisk;
+void InitMountDisk(PDRIVER_OBJECT DriverObject,
+	UINT32 devId,
+	UINT32 totalLength,
+	PMOUNTEDDISK disk);
 
-NTSTATUS MountedDiskDispatchIrp(PIRP irp);
+void DesctructorMountDisk(PMOUNTEDDISK disk);
+NTSTATUS MountedDiskDispatchIrp(PIRP irp, PMOUNTEDDISK disk);
+void MountedDiskCompleteLastIrp(NTSTATUS status, ULONG information, PMOUNTEDDISK disk);

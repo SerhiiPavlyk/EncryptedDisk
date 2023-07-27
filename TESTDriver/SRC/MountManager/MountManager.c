@@ -16,13 +16,13 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 
 	ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
 
-	for (INT32 i = 0; i < DataOfMountManager.gMountedDiskCount; i++)
+	for (UINT32 i = 0; i < DataOfMountManager.gMountedDiskCount; i++)
 	{
 		if (devId == MountDiskList[i].irpDispatcher.devId_.deviceId)
 		{
 			devId = i;
 		}
-		if (devId + 1 == DataOfMountManager.gMountedDiskCount)
+		if (devId == DataOfMountManager.gMountedDiskCount)
 		{
 			
 			irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
@@ -32,9 +32,11 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 	}
 	disk = MountDiskList + devId;
 	ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-
-
-	return MountedDiskDispatchIrp(irp);
+	initProtectedVector(&disk->irpQueue_, 1);
+	NTSTATUS status = MountedDiskDispatchIrp(irp, disk);
+	destroy(&disk->irpQueue_);
+	//DesctructorMountDisk(disk);
+	return status;
 
 }
 
@@ -103,7 +105,7 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 }*/
 
 
-int Mount(UINT64 totalLength)
+int Mount(UINT32 totalLength)
 {
 	//DbgBreakPoint();
 	//generate id
@@ -127,13 +129,7 @@ int Mount(UINT64 totalLength)
 		DbgPrintEx(0, 0, "Failed to mount disk\n");
 		return -1;
 	}
-
-	if (IrpHandlerInit(devId, totalLength, DataOfMountManager.DriverObject,disk) != STATUS_SUCCESS)
-	{
-		DbgPrintEx(0, 0, "Failed IrpHandlerInit\n");
-		return -1;
-	};
-
+	InitMountDisk(DataOfMountManager.DriverObject, devId, totalLength, disk);
 
 	//DbgBreak()Point();
 
@@ -148,15 +144,14 @@ int Mount(UINT64 totalLength)
 	}*/
 
 	//disk->irpDispatcher.deviceObject_->Size = 2000LL * 1024;
-
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-		int i = DataOfMountManager.gMountedDiskCount;
+		int i = devId;
 
 		if (i <= MAX_SIZE - 1)
 		{
 			MountDiskList[i] = *disk;
-			disk->irpDispatcher.devId_.deviceId = DataOfMountManager.gMountedDiskCount++;
+			disk->irpDispatcher.devId_.deviceId = devId;
 			DbgPrintEx(0, 0, "MountedDisk data successfully ADDED in array!\n");
 		}
 		else
@@ -169,6 +164,8 @@ int Mount(UINT64 totalLength)
 
 		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 	}
+	//DbgBreakPoint();
+	//DesctructorMountDisk(disk);
 	ExFreePoolWithTag(disk, "mntDisk");
 	return devId;
 }
@@ -179,7 +176,7 @@ VOID Unmount(UINT32 deviceId)			//ввиду того, что буква Тома выбирается в любом 
 	if (deviceId < DataOfMountManager.gMountedDiskCount - 1)
 	{
 
-		for (INT32 i = deviceId; i < DataOfMountManager.gMountedDiskCount - 1; ++i)
+		for (UINT32 i = deviceId; i < DataOfMountManager.gMountedDiskCount - 1; ++i)
 		{
 			MountDiskList[deviceId] = MountDiskList[deviceId + 1];
 		}
@@ -215,12 +212,12 @@ VOID MountManagerRequestExchange(UINT32 devID,
 	UINT32 bufSize,
 	UINT32* type,
 	UINT32* length,
-	UINT64* offset)
+	UINT32* offset)
 {
 	PMOUNTEDDISK disk = NULL;
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-		for (INT32 i = 0; i < DataOfMountManager.gMountedDiskCount; ++i)
+		for (UINT32 i = 0; i < DataOfMountManager.gMountedDiskCount; ++i)
 		{
 			if (devID == MountDiskList[i].irpDispatcher.devId_.deviceId)
 			{

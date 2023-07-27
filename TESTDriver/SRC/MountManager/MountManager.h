@@ -8,6 +8,7 @@ typedef struct MManager
 	BOOL isInitializied;
 	PDRIVER_OBJECT DriverObject;
 
+
 } MountManager, * PMountManager;
 
 
@@ -18,7 +19,7 @@ MountManager DataOfMountManager;
 
 NTSTATUS MountManagerInit(PDRIVER_OBJECT DriverObject);
 NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp);
-int Mount(UINT64 totalLength);
+int Mount(UINT32 totalLength);
 
 VOID Unmount(UINT32 deviceId);			//ввиду того, что буква Тома выбирается в любом удобном порядке
 VOID MountManagerRequestExchange(UINT32 devID,
@@ -29,7 +30,7 @@ VOID MountManagerRequestExchange(UINT32 devID,
 	UINT32 bufSize,
 	UINT32* type,
 	UINT32* length,
-	UINT64* offset);
+	UINT32* offset);
 
 
 

@@ -32,10 +32,11 @@ NTSTATUS IrpHandler(IN PDEVICE_OBJECT fdo, IN PIRP pIrp)
 	{
 		return dispatch_irp(fdo, pIrp);
 	}
-	//DbgBreak()Point();
+	//DbgBreakPoint();
 	PDeviceId devExt = (PDeviceId)fdo->DeviceExtension;
 	UINT32 deviceIdValue = devExt->deviceId;
 	status = MountManagerDispatchIrp(deviceIdValue, pIrp);
+	//DbgBreakPoint();
 	if (status != STATUS_SUCCESS)
 	{
 		status = CompleteIrp(pIrp, STATUS_NO_SUCH_DEVICE, 0);
@@ -104,7 +105,7 @@ NTSTATUS DispatchMount(PVOID buffer,
 	{
 
 		CoreMNTMountRequest* request = (CoreMNTMountRequest*)buffer;
-		UINT64 totalLength = request->totalLength;
+		UINT32 totalLength = request->totalLength;
 		CoreMNTMountResponse* response = (CoreMNTMountResponse*)buffer;
 		//CreateVirtualDisk();
 		response->deviceId = Mount(totalLength);
