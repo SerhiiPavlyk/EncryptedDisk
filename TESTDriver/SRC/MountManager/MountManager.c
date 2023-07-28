@@ -13,7 +13,6 @@ NTSTATUS MountManagerInit(PDRIVER_OBJECT DriverObject)
 NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 {
 	PMOUNTEDDISK disk;
-
 	ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
 
 	for (UINT32 i = 0; i < DataOfMountManager.gMountedDiskCount; i++)
@@ -32,9 +31,9 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 	}
 	disk = MountDiskList + devId;
 	ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-	initProtectedVector(&disk->irpQueue_, 1);
+	//initProtectedVector(&disk->irpQueue_, 1);
 	NTSTATUS status = MountedDiskDispatchIrp(irp, disk);
-	destroy(&disk->irpQueue_);
+	//destroy(&disk->irpQueue_);
 	//DesctructorMountDisk(disk);
 	return status;
 
@@ -172,10 +171,11 @@ int Mount(UINT32 totalLength)
 
 VOID Unmount(UINT32 deviceId)			//ввиду того, что буква Тома выбирается в любом удобном порядке
 {
+	DbgBreakPoint();
 	ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
 	if (deviceId < DataOfMountManager.gMountedDiskCount - 1)
 	{
-
+		DesctructorMountDisk(&MountDiskList[deviceId]);
 		for (UINT32 i = deviceId; i < DataOfMountManager.gMountedDiskCount - 1; ++i)
 		{
 			MountDiskList[deviceId] = MountDiskList[deviceId + 1];
@@ -188,6 +188,7 @@ VOID Unmount(UINT32 deviceId)			//ввиду того, что буква Тома выбирается в любом 
 	}
 	else if (deviceId == DataOfMountManager.gMountedDiskCount)
 	{
+
 		DataOfMountManager.gMountedDiskCount--;				//просто уменьшаем число созданных дисков, чтобы
 									// 1. при показе всех дисков последний не показывался
 									// 2. при создании нового диска, данные перепишутся поверх последнего диска, который "удалили"

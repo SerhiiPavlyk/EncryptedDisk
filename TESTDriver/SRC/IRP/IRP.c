@@ -93,6 +93,22 @@ NTSTATUS IrpHandlerdispatch(PIRP irp)
 	//DbgBreakPoint();
 	switch (ioStack->MajorFunction)
 	{
+
+
+	/// <summary>
+	/// //
+	/// </summary>
+	/// <param name="irp"></param>
+	/// <returns></returns>
+
+	case IRP_MJ_CLEANUP:
+		return CompleteIrp(irp, STATUS_SUCCESS, 0);
+
+
+
+
+
+
 	case IRP_MJ_CREATE:
 	case IRP_MJ_CLOSE:
 		irp->IoStatus.Status = STATUS_SUCCESS;
@@ -120,9 +136,9 @@ NTSTATUS IrpHandlerdispatch(PIRP irp)
 	return status;
 }
 
-NTSTATUS deleteDevice()
+NTSTATUS deleteDevice(PMOUNTEDDISK disk)
 {
-	IoDeleteDevice(IrpData.deviceObject_);
+	IoDeleteDevice(disk->irpDispatcher.deviceObject_);
 	DbgPrintEx(0, 0, "deleteDevice() - device successfully deleted!\n");
 	return STATUS_SUCCESS;
 }
@@ -190,6 +206,8 @@ NTSTATUS handle_cleanup_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 	return STATUS_SUCCESS;
 }
+
+
 NTSTATUS CompleteIrp(PIRP Irp, NTSTATUS status, ULONG info)
 {
 	Irp->IoStatus.Status = status;

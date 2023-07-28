@@ -19,6 +19,9 @@ void DesctructorMountDisk(PMOUNTEDDISK disk)
 
 	while (pop(&disk->irpQueue_))
 		MountedDiskCompleteLastIrp(STATUS_DEVICE_NOT_READY, 0, disk);
+	deleteDevice(disk);
+	destroy(&disk->irpQueue_);
+	ExFreePoolWithTag(disk->FileName.Buffer, 'MYVC');
 }
 
 NTSTATUS MountedDiskDispatchIrp(PIRP irp, PMOUNTEDDISK disk)

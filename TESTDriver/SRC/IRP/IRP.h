@@ -49,7 +49,7 @@ NTSTATUS IrpHandlerdispatch(PIRP irp);
 void dispatchIoctl(PIRP irp);
 PVOID getIrpBuffer(PIRP irp);
 
-NTSTATUS deleteDevice();
+NTSTATUS deleteDevice(PMOUNTEDDISK disk);
 
 // IRP_MJ_READ handler
 NTSTATUS handle_read_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);

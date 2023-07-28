@@ -11,7 +11,7 @@ FAST_MUTEX fastMtx;
 
 
 
-NTSTATUS deleteDevice();
+
 
 //пошел код из MountedDisk, у него есть  IrpHandler irpDispatcher_ и пока что PIRP
 

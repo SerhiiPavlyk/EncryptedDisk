@@ -146,10 +146,14 @@ NTSTATUS DispatchExchange(PVOID buffer, ULONG inputBufferLength, ULONG outputBuf
 }
 NTSTATUS DispatchUnmount(PVOID buffer, ULONG inputBufferLength, ULONG outputBufferLength)
 {
+	DbgBreakPoint();
 	if (inputBufferLength >= sizeof(CoreMNTUnmountRequest))
 	{
-		CoreMNTUnmountRequest* request = (CoreMNTUnmountRequest*)buffer;
-		Unmount(request->deviceId);
+		CHAR writeData[256];
+		RtlCopyMemory(writeData, buffer, inputBufferLength);
+		CoreMNTUnmountRequest request;
+		request.deviceId = writeData[0] - '0';
+		Unmount(request.deviceId);
 		return STATUS_SUCCESS;
 	}
 	else
