@@ -5,19 +5,19 @@ project(TESTDriver VERSION 1.0.0)
 
 wdk_add_driver(TESTDriver
     KMDF 1.15
-	# SRC/ControlDeviceIrpHandler/ControlDeviceIrpHandler.с
 	SRC/IRP/IRP.c
+	SRC/IRPQueue/IRPQueue.c
 	SRC/MountedDisk/MountedDisk.c
 	SRC/main/pch.c
 	SRC/main/main.c
 	SRC/MountManager/MountManager.c
-	SRC/VirtualDisk/VirtualDisk.c
-	# SRC/ControlDeviceIrpHandler/ControlDeviceIrpHandler.h
+	SRC/ProtectedVector/ProtectedVector.c
 	SRC/IRP/IRP.h
 	SRC/MountedDisk/MountedDisk.h
 	SRC/main/pch.h
 	SRC/MountManager/MountManager.h
-	SRC/VirtualDisk/VirtualDisk.h
+	SRC/ProtectedVector/ProtectedVector.h
+	SRC/IRPQueue/IRPQueue.h
 	
 	
 )
