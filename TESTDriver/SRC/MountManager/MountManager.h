@@ -1,5 +1,5 @@
 #pragma once
-//#include "VirtualDisk/VirtualDisk.h"
+
 #include "MountedDisk/MountedDisk.h"
 typedef struct MManager
 {
@@ -13,25 +13,15 @@ typedef struct MManager
 
 
 MountManager DataOfMountManager;
-//NTSTATUS AddVirtualDisk();
-
-//NTSTATUS RemoveVirtualDisk(UINT32 deviceId);
 
 NTSTATUS MountManagerInit(PDRIVER_OBJECT DriverObject);
+
 NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp);
+
 int Mount(UINT32 totalLength);
 
-VOID Unmount(UINT32 deviceId);			//ввиду того, что буква Тома выбирается в любом удобном порядке
-VOID MountManagerRequestExchange(UINT32 devID,
-	UINT32 lastType,
-	UINT32 lastStatus,
-	UINT32 lastSize,
-	char* buf,
-	UINT32 bufSize,
-	UINT32* type,
-	UINT32* length,
-	UINT32* offset);
+VOID Unmount(UINT32 deviceId);
 
+VOID MountManagerRequestExchange(UINT32 devID, UINT32 lastType, UINT32 lastStatus,
+	UINT32 lastSize, char* buf, UINT32 bufSize, UINT32* type, UINT32* length, UINT32* offset);
 
-
-//NTSTATUS RemoveVirtualDisk(UINT32 deviceId);

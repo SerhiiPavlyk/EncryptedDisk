@@ -1,11 +1,7 @@
 #include "main/pch.h"
 #include "IRP/IRP.h"
 
-
 #include <ntstrsafe.h>
-// disk as parametr
-// system set a letter
-// notify system
 
 NTSTATUS IrpHandlerInit(UINT32 devId, UINT32 totalLength, PDRIVER_OBJECT DriverObject, PMOUNTEDDISK Mdisk)
 {
@@ -143,71 +139,6 @@ NTSTATUS deleteDevice(PMOUNTEDDISK disk)
 	return STATUS_SUCCESS;
 }
 
-
-NTSTATUS handle_read_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
-{
-	UNREFERENCED_PARAMETER(DeviceObject);
-	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
-	ULONG bytesToRead = ioStack->Parameters.Read.Length;
-	LARGE_INTEGER offset = ioStack->Parameters.Read.ByteOffset;
-
-	NTSTATUS status = read_from_virtual_disk((char*)Irp->AssociatedIrp.SystemBuffer, bytesToRead, offset);
-	Irp->IoStatus.Status = status;
-	Irp->IoStatus.Information = NT_SUCCESS(status) ? bytesToRead : 0;
-	DbgPrintEx(0,0,"Dummy Driver: handle_read_request\n");
-	IoCompleteRequest(Irp, IO_NO_INCREMENT);
-	return status;
-}
-
-NTSTATUS handle_write_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
-{
-	UNREFERENCED_PARAMETER(DeviceObject);
-	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
-	ULONG bytesToWrite = ioStack->Parameters.Write.Length;
-	LARGE_INTEGER offset = ioStack->Parameters.Write.ByteOffset;
-
-	NTSTATUS status = write_request((const char*)Irp->AssociatedIrp.SystemBuffer, bytesToWrite, offset);
-	Irp->IoStatus.Status = status;
-	Irp->IoStatus.Information = NT_SUCCESS(status) ? bytesToWrite : 0;
-	DbgPrintEx(0,0,"Dummy Driver: handle_write_request\n");
-	IoCompleteRequest(Irp, IO_NO_INCREMENT);
-	return status;
-}
-
-NTSTATUS handle_ioctl_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
-{
-	UNREFERENCED_PARAMETER(DeviceObject);
-	NTSTATUS status = STATUS_SUCCESS;
-
-	// createdisk
-	// 
-
-	/// <summary>
-	/// /
-	/// </summary>
-	/// <param name="DeviceObject"></param>
-	/// <param name="Irp"></param>
-	/// <returns></returns>
-
-	Irp->IoStatus.Status = status;
-	Irp->IoStatus.Information = 0;
-	DbgPrintEx(0,0,"Dummy Driver: handle_ioctl_request\n");
-	IoCompleteRequest(Irp, IO_NO_INCREMENT);
-	return status;
-}
-
-NTSTATUS handle_cleanup_request(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
-{
-	UNREFERENCED_PARAMETER(DeviceObject);
-	// Perform cleanup tasks (if needed) when a file handle to the virtual disk is closed.
-	Irp->IoStatus.Status = STATUS_SUCCESS;
-	Irp->IoStatus.Information = 0;
-	DbgPrintEx(0,0,"Dummy Driver: handle_cleanup_request\n");
-	IoCompleteRequest(Irp, IO_NO_INCREMENT);
-	return STATUS_SUCCESS;
-}
-
-
 NTSTATUS CompleteIrp(PIRP Irp, NTSTATUS status, ULONG info)
 {
 	Irp->IoStatus.Status = status;
@@ -215,73 +146,6 @@ NTSTATUS CompleteIrp(PIRP Irp, NTSTATUS status, ULONG info)
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 	return status;
 }
-
-
-
-NTSTATUS read_from_virtual_disk(char* buf, ULONG count, LARGE_INTEGER offset)
-{
-	UNREFERENCED_PARAMETER(buf);
-	UNREFERENCED_PARAMETER(count);
-	UNREFERENCED_PARAMETER(offset);
-	return STATUS_SUCCESS;
-}
-
-
-NTSTATUS write_request(const char* data, ULONG bytesToWrite, LARGE_INTEGER offset)
-{
-	IO_STATUS_BLOCK ioStatusBlock;
-	FILE_POSITION_INFORMATION positionInfo;
-	HANDLE fileHandle;
-	NTSTATUS status = STATUS_SUCCESS;
-	OBJECT_ATTRIBUTES objectAttributes;
-
-	UNICODE_STRING dirName;
-
-	RtlInitUnicodeString(&dirName, ROOT_DIR_NAME);
-
-	InitializeObjectAttributes(&objectAttributes, &dirName, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, NULL, NULL);
-
-	status = ZwOpenFile(&fileHandle,
-		FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-		&objectAttributes,
-		&ioStatusBlock,
-		0,
-		FILE_NON_DIRECTORY_FILE
-	);
-
-	if (status != STATUS_SUCCESS)
-	{
-		//DbgBreak()Point();
-		DbgPrintEx(0, 0, "ZwOpenFile() FAILED!\n");
-		return status;
-	}
-
-	// Set the file pointer to the specified offset
-	positionInfo.CurrentByteOffset = offset;
-	status = ZwSetInformationFile(fileHandle, &ioStatusBlock, &positionInfo, sizeof(positionInfo), FilePositionInformation);
-
-	if (!NT_SUCCESS(status))
-	{
-		DbgPrintEx(0, 0, "ZwSetInformationFile() FAILED!\n");
-		DbgPrintEx(0,0,"Failed to set file pointer: 0x%X\n", status);
-		return status;
-	}
-
-	// Write the data to the file
-	status = ZwWriteFile(ROOT_DIR_NAME, NULL, NULL, NULL, &ioStatusBlock, (PVOID)data, bytesToWrite, &offset, NULL);
-
-	if (!NT_SUCCESS(status))
-	{
-		DbgPrintEx(0,0,"Failed to write to file: 0x%X\n", status);
-		return status;
-	}
-	//ZwClose();
-	return status;
-}
-
-
-
-
 
 void dispatchIoctl(PIRP irp)
 {

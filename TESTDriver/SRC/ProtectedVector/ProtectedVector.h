@@ -18,9 +18,7 @@ void initProtectedVectorAddEvent(Vector* vector, UINT32 capacity, KEVENT* Kevent
 
 void push_back(Vector* vector, PIRP value);
 
-
 void destroy(Vector* vector);
-
 
 int pop(Vector* vector, PIRP value);
 

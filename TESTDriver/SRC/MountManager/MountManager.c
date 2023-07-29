@@ -12,9 +12,7 @@ NTSTATUS MountManagerInit(PDRIVER_OBJECT DriverObject)
 	//NTSTATUS          status;
 	//UNICODE_STRING    device_dir_name;
 	//OBJECT_ATTRIBUTES object_attributes;
-
 	//RtlInitUnicodeString(&device_dir_name, ROOT_DIR_NAME);
-
 	//InitializeObjectAttributes(
 	//	&object_attributes,
 	//	&device_dir_name,
@@ -22,16 +20,15 @@ NTSTATUS MountManagerInit(PDRIVER_OBJECT DriverObject)
 	//	NULL,
 	//	NULL
 	//);
-
 	//HANDLE dir_handle;
 	//status = ZwCreateDirectoryObject(
 	//	&dir_handle,
 	//	DIRECTORY_ALL_ACCESS,
 	//	&object_attributes
 	//);
-
 	//if (!NT_SUCCESS(status))
 	//	ASSERT(FALSE);
+
 }
 
 NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
@@ -42,12 +39,11 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 	for (UINT32 i = 0; i < DataOfMountManager.gMountedDiskCount; i++)
 	{
 		if (devId == MountDiskList[i].irpDispatcher.devId_.deviceId)
-		{
 			devId = i;
-		}
+
 		/*if (devId == DataOfMountManager.gMountedDiskCount)
 		{
-			
+
 			irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
 			IoCompleteRequest(irp, IO_NO_INCREMENT);
 			return STATUS_DEVICE_NOT_READY;
@@ -55,94 +51,22 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 	}
 	disk = MountDiskList + devId;
 	ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-	//initProtectedVector(&disk->irpQueue_, 1);
 	NTSTATUS status = MountedDiskDispatchIrp(irp, disk);
-	//destroy(&disk->irpQueue_);
-	//DesctructorMountDisk(disk);
+
 	return status;
 
 }
 
-
-/*NTSTATUS AddVirtualDisk()
-{
-	VIRTUALDISK disk;
-	disk.devID.deviceId = 0;
-
-	NTSTATUS status = STATUS_SUCCESS;
-
-	{
-		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-		int i = DataOfMountManager.gVirtualDiskCount + 1;
-
-		if (i <= MAX_SIZE - 1)
-		{
-			VirtDiskList[i] = disk; //учитывая то, что disk передается параметром, все данные о нем есть
-			disk.devID.deviceId = DataOfMountManager.gVirtualDiskCount++;
-
-			DbgPrintEx(0,0,"VirtualDisk data successfully ADDED in array!\n");
-		}
-		else
-		{
-			DbgPrintEx(0,0,"VirtDiskList is full!\n");
-			ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-			return STATUS_UNSUCCESSFUL;
-		}
-
-		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-	}
-	return status;
-}*/
-
-/*NTSTATUS RemoveVirtualDisk(UINT32 deviceId)      //ввиду того, что буква Тома выбирается в любом удобном порядке
-{
-
-	if (deviceId < DataOfMountManager.gVirtualDiskCount - 1)
-	{
-
-		for (int i = deviceId; i < DataOfMountManager.gVirtualDiskCount - 1; ++i)
-		{
-			VirtDiskList[deviceId] = VirtDiskList[deviceId + 1];
-		}
-
-		DataOfMountManager.gVirtualDiskCount--;
-		DbgPrintEx(0,0,"Disk successfully deleted!\n");
-		return STATUS_SUCCESS;
-
-	}
-	else if (deviceId == DataOfMountManager.gVirtualDiskCount)
-	{
-		DataOfMountManager.gVirtualDiskCount--;        //просто уменьшаем число созданных дисков, чтобы
-					  // 1. при показе всех дисков последний не показывался
-					  // 2. при создании нового диска, данные перепишутся поверх последнего диска, который "удалили"
-					  // P.S. возможно это не лучший вариант :)
-
-		DbgPrintEx(0,0,"Disk successfully deleted!\n");
-		return STATUS_SUCCESS;
-	}
-	else
-	{
-		DbgPrintEx(0,0,"Invalid parameter - disk NOT FOUND");
-		return STATUS_INVALID_PARAMETER;
-	}
-}*/
-
-
 int Mount(UINT32 totalLength)
 {
-	//DbgBreakPoint();
-	//generate id
+
 	UINT32 devId = 0;
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
 		if (DataOfMountManager.gMountedDiskCount < MAX_SIZE - 2)
-		{
 			devId = DataOfMountManager.gMountedDiskCount++;
-		}
 		else
-		{
 			DbgPrintEx(0, 0, "FUNCTION - device ID already exist\n");
-		}
 		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 	}
 
@@ -154,19 +78,6 @@ int Mount(UINT32 totalLength)
 	}
 	InitMountDisk(DataOfMountManager.DriverObject, devId, totalLength, disk);
 
-	//DbgBreak()Point();
-
-	/*UNICODE_STRING gSymbolicLinkName = RTL_CONSTANT_STRING(L"\\Device\\disk0");
-
-	
-	NTSTATUS status = IoCreateSymbolicLink(&gSymbolicLinkName, &disk->FileName);
-	if (status != STATUS_SUCCESS)
-	{
-		DbgPrintEx(0,0,"IoCreateSymbolicLink fail!\n");
-		return STATUS_FAILED_DRIVER_ENTRY;
-	}*/
-
-	//disk->irpDispatcher.deviceObject_->Size = 2000LL * 1024;
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
 		int i = devId;
@@ -187,60 +98,47 @@ int Mount(UINT32 totalLength)
 
 		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 	}
-	//DbgBreakPoint();
-	//DesctructorMountDisk(disk);
+
 	ExFreePoolWithTag(disk, "mntDisk");
 	return devId;
 }
 
 VOID Unmount(UINT32 deviceId)			//ввиду того, что буква Тома выбирается в любом удобном порядке
 {
-	DbgBreakPoint();
+
 	ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
 	if (deviceId < DataOfMountManager.gMountedDiskCount - 1)
 	{
 		DesctructorMountDisk(&MountDiskList[deviceId]);
 		for (UINT32 i = deviceId; i < DataOfMountManager.gMountedDiskCount - 1; ++i)
-		{
 			MountDiskList[deviceId] = MountDiskList[deviceId + 1];
-		}
 
 		DataOfMountManager.gMountedDiskCount--;
 		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-		DbgPrintEx(0,0,"Disk successfully deleted!\n");
-
+		DbgPrintEx(0, 0, "Disk successfully deleted!\n");
 	}
 	else if (deviceId == DataOfMountManager.gMountedDiskCount)
 	{
-
 		DataOfMountManager.gMountedDiskCount--;				//просто уменьшаем число созданных дисков, чтобы
 									// 1. при показе всех дисков последний не показывался
 									// 2. при создании нового диска, данные перепишутся поверх последнего диска, который "удалили"
 									// P.S. возможно это не лучший вариант :)
 
-		DbgPrintEx(0,0,"Disk successfully deleted!\n");
+		DbgPrintEx(0, 0, "Disk successfully deleted!\n");
 		return STATUS_SUCCESS;
 	}
 	else
 	{
-		DbgPrintEx(0,0,"Invalid parameter - disk NOT FOUND");
+		DbgPrintEx(0, 0, "Invalid parameter - disk NOT FOUND");
 		return STATUS_INVALID_PARAMETER;
 	}
 }
 
 
-VOID MountManagerRequestExchange(UINT32 devID,
-	UINT32 lastType,
-	UINT32 lastStatus,
-	UINT32 lastSize,
-	char* buf,
-	UINT32 bufSize,
-	UINT32* type,
-	UINT32* length,
-	UINT32* offset)
+VOID MountManagerRequestExchange(UINT32 devID, UINT32 lastType, UINT32 lastStatus, UINT32 lastSize, char* buf,
+	UINT32 bufSize, UINT32* type, UINT32* length, UINT32* offset)
 {
 	PMOUNTEDDISK disk = NULL;
-	//DbgPrintEx(0, 0, "MountManagerRequestExchange\n");
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
 		for (UINT32 i = 0; i < DataOfMountManager.gMountedDiskCount; ++i)
@@ -255,9 +153,7 @@ VOID MountManagerRequestExchange(UINT32 devID,
 		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 	}
 	if (disk == NULL)
-	{
-		DbgPrintEx(0,0,"RequestExchange() - Disk NOT FOUND\n");
-	}
+		DbgPrintEx(0, 0, "RequestExchange() - Disk NOT FOUND\n");
 
 	MountedDiskRequestExchange(lastType, lastStatus, lastSize, buf, bufSize,
 		type, length, offset, disk);

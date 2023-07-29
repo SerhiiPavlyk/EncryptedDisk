@@ -1,10 +1,7 @@
 #include "main/pch.h"
 #include "MountedDisk/MountedDisk.h"
 
-void InitMountDisk(PDRIVER_OBJECT DriverObject,
-	UINT32 devId,
-	UINT32 totalLength,
-	PMOUNTEDDISK disk)
+void InitMountDisk(PDRIVER_OBJECT DriverObject, UINT32 devId, UINT32 totalLength, PMOUNTEDDISK disk)
 {
 	IrpHandlerInit(devId, totalLength, DriverObject, disk);
 	KernelCustomEventInit(FALSE, &disk->irpQueueNotEmpty_);
@@ -21,6 +18,7 @@ void DesctructorMountDisk(PMOUNTEDDISK disk)
 
 	while (pop(&disk->irpQueue_, disk->pIrp))
 		MountedDiskCompleteLastIrp(STATUS_DEVICE_NOT_READY, 0, disk);
+
 	deleteDevice(disk);
 	destroy(&disk->irpQueue_);
 	ExFreePoolWithTag(disk->FileName.Buffer, 'MYVC');
@@ -33,12 +31,10 @@ NTSTATUS MountedDiskDispatchIrp(PIRP irp, PMOUNTEDDISK disk)
 	irpParam.offset = 0;
 	irpParam.size = 0;
 	irpParam.type = 0;
-	//DbgBreakPoint();
 	IrpHandlerGetIrpParam(irp, &irpParam);
 	if (irpParam.type == directOperationEmpty)
 	{
 		NTSTATUS status = STATUS_SUCCESS;
-
 		status = IrpHandlerdispatch(irp);
 		if (status != STATUS_SUCCESS)
 		{
@@ -71,8 +67,7 @@ void MountedDiskRequestExchange(UINT32 lastType, UINT32 lastStatus, UINT32 lastS
 	{
 		ASSERT(disk->pIrp);
 		disk->pIrp->IoStatus.Status = lastStatus;
-		if (lastStatus == STATUS_SUCCESS
-			&& (DiskOperationType)lastType == directOperationRead)
+		if (lastStatus == STATUS_SUCCESS && (DiskOperationType)lastType == directOperationRead)
 		{
 			IrpParam irpParam;
 			irpParam.buffer = 0;
@@ -89,11 +84,9 @@ void MountedDiskRequestExchange(UINT32 lastType, UINT32 lastStatus, UINT32 lastS
 	}
 	ASSERT(!disk->pIrp);
 	*type = directOperationEmpty;
-	//DbgBreakPoint();
-	if (&disk->irpQueueNotEmpty_ == NULL || &disk->stopEvent_ == NULL||
+	if (&disk->irpQueueNotEmpty_ == NULL || &disk->stopEvent_ == NULL ||
 		!KeReadStateEvent(&disk->irpQueueNotEmpty_) || !KeReadStateEvent(&disk->stopEvent_))
 	{
-		//DbgPrintEx(0, 0, "NULL 96 MD failed");
 		return;
 	}
 	PVOID eventsArray[] = { &disk->irpQueueNotEmpty_, &disk->stopEvent_ };
@@ -119,8 +112,7 @@ void MountedDiskRequestExchange(UINT32 lastType, UINT32 lastStatus, UINT32 lastS
 			break;
 		ASSERT(FALSE);
 	}
-	if (*type != directOperationEmpty
-		&& (DiskOperationType)*type == directOperationWrite)
+	if (*type != directOperationEmpty && (DiskOperationType)*type == directOperationWrite)
 	{
 		IrpParam irpParam;
 		irpParam.buffer = 0;
