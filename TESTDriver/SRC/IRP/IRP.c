@@ -93,20 +93,20 @@ NTSTATUS IrpHandlerdispatch(PIRP irp)
 	//DbgBreakPoint();
 	switch (ioStack->MajorFunction)
 	{
-
-
-	/// <summary>
-	/// //
-	/// </summary>
-	/// <param name="irp"></param>
-	/// <returns></returns>
-
+	case IRP_MJ_PNP:
+		DbgPrintEx(0, 0, ("IRP_MJ_PNP\n"));
+		irp->IoStatus.Status = STATUS_SUCCESS;
+		irp->IoStatus.Information = 0;
+		break;
 	case IRP_MJ_CLEANUP:
-		return CompleteIrp(irp, STATUS_SUCCESS, 0);
-
-
-
-
+	/*	return CompleteIrp(irp, STATUS_SUCCESS, 0);
+		break;
+	case IRP_MJ_QUERY_INFORMATION:
+		DbgPrintEx(0, 0, (__FUNCTION__" IRP_MJ_QUERY_INFORMATION\n"));
+		irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
+		irp->IoStatus.Information = 0;
+		status = STATUS_UNSUCCESSFUL;
+		break;*/
 
 
 	case IRP_MJ_CREATE:
@@ -115,14 +115,14 @@ NTSTATUS IrpHandlerdispatch(PIRP irp)
 		irp->IoStatus.Information = 0;
 		break;
 	case IRP_MJ_QUERY_VOLUME_INFORMATION:
-		DbgPrintEx(0,0,(__FUNCTION__" IRP_MJ_QUERY_VOLUME_INFORMATION\n"));
+		DbgPrintEx(0,0,("IRP_MJ_QUERY_VOLUME_INFORMATION\n"));
 		irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
 		irp->IoStatus.Information = 0;
 		status = STATUS_UNSUCCESSFUL;
 		break;
 	case IRP_MJ_DEVICE_CONTROL:
 		dispatchIoctl(irp);
-		status = irp->IoStatus.Status;
+		//status = irp->IoStatus.Status;
 		if (status != STATUS_SUCCESS)
 		{
 			DbgPrintEx(0, 0, "dispatchIoctl fail  IRP = 100 line");
@@ -131,7 +131,7 @@ NTSTATUS IrpHandlerdispatch(PIRP irp)
 		break;
 	default:
 		DbgPrintEx(0, 0, (__FUNCTION__"Unknown MJ fnc = 0x%x\n", ioStack->MajorFunction));
-		status = STATUS_UNSUCCESSFUL;
+		//status = STATUS_UNSUCCESSFUL;
 	}
 	return status;
 }
@@ -593,7 +593,7 @@ void dispatchIoctl(PIRP irp)
 		irp->IoStatus.Information = 0;
 		break;
 	default:
-		DbgPrintEx(0,0,"Unknown PNP major function= 0x%x\n", ioStack->MinorFunction);
+		DbgPrintEx(0,0,"Unknown PNP minor function= 0x%x\n", ioStack->MinorFunction);
 	}
 }
 

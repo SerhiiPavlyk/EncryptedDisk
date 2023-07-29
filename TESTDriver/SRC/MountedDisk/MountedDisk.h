@@ -19,3 +19,6 @@ void InitMountDisk(PDRIVER_OBJECT DriverObject,
 void DesctructorMountDisk(PMOUNTEDDISK disk);
 NTSTATUS MountedDiskDispatchIrp(PIRP irp, PMOUNTEDDISK disk);
 void MountedDiskCompleteLastIrp(NTSTATUS status, ULONG information, PMOUNTEDDISK disk);
+
+void MountedDiskRequestExchange(UINT32 lastType, UINT32 lastStatus, UINT32 lastSize, char* buf, UINT32 bufSize,
+	UINT32* type, UINT32* length, UINT64* offset, PMOUNTEDDISK disk);

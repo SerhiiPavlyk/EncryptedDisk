@@ -6,7 +6,7 @@ typedef struct {
     PIRP* data;
     UINT32 size;
     UINT32 capacity;
-    FAST_MUTEX mutex;
+    SpinLock mutex;
     KEVENT ownNotEmptyEvent_;
     KEVENT* notEmptyEvent_;
 
@@ -22,8 +22,9 @@ void push_back(Vector* vector, PIRP value);
 void destroy(Vector* vector);
 
 
-int pop(Vector* vector);
+int pop(Vector* vector, PIRP value);
 
+void PVon_pop();
 
 BOOL IsEmpty(Vector* vector);
 

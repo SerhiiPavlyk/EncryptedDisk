@@ -8,6 +8,30 @@ NTSTATUS MountManagerInit(PDRIVER_OBJECT DriverObject)
 	DataOfMountManager.gMountedDiskCount = 0;
 	ExInitializeFastMutex(&DataOfMountManager.diskMapLock_);
 	DataOfMountManager.isInitializied = TRUE;
+
+	//NTSTATUS          status;
+	//UNICODE_STRING    device_dir_name;
+	//OBJECT_ATTRIBUTES object_attributes;
+
+	//RtlInitUnicodeString(&device_dir_name, ROOT_DIR_NAME);
+
+	//InitializeObjectAttributes(
+	//	&object_attributes,
+	//	&device_dir_name,
+	//	OBJ_OPENIF,
+	//	NULL,
+	//	NULL
+	//);
+
+	//HANDLE dir_handle;
+	//status = ZwCreateDirectoryObject(
+	//	&dir_handle,
+	//	DIRECTORY_ALL_ACCESS,
+	//	&object_attributes
+	//);
+
+	//if (!NT_SUCCESS(status))
+	//	ASSERT(FALSE);
 }
 
 NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
@@ -21,13 +45,13 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 		{
 			devId = i;
 		}
-		if (devId == DataOfMountManager.gMountedDiskCount)
+		/*if (devId == DataOfMountManager.gMountedDiskCount)
 		{
 			
 			irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
 			IoCompleteRequest(irp, IO_NO_INCREMENT);
 			return STATUS_DEVICE_NOT_READY;
-		}
+		}*/
 	}
 	disk = MountDiskList + devId;
 	ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
@@ -216,13 +240,14 @@ VOID MountManagerRequestExchange(UINT32 devID,
 	UINT32* offset)
 {
 	PMOUNTEDDISK disk = NULL;
+	//DbgPrintEx(0, 0, "MountManagerRequestExchange\n");
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
 		for (UINT32 i = 0; i < DataOfMountManager.gMountedDiskCount; ++i)
 		{
 			if (devID == MountDiskList[i].irpDispatcher.devId_.deviceId)
 			{
-				DbgPrintEx(0, 0, "RequestExchange() - disk FOUND\n");
+				//DbgPrintEx(0, 0, "RequestExchange() - disk FOUND\n");
 				disk = &MountDiskList[i];
 				break;
 			}
@@ -234,7 +259,8 @@ VOID MountManagerRequestExchange(UINT32 devID,
 		DbgPrintEx(0,0,"RequestExchange() - Disk NOT FOUND\n");
 	}
 
-	//а дальше то че????
+	MountedDiskRequestExchange(lastType, lastStatus, lastSize, buf, bufSize,
+		type, length, offset, disk);
 }
 
 

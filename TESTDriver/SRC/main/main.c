@@ -52,14 +52,6 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	DriverObject->DriverUnload = UnloadDriver;
 	NTSTATUS status = STATUS_SUCCESS;
 
-
-	/*status = CreateVirtualDisk();
-	if (status != STATUS_SUCCESS)
-	{
-		DbgPrintEx(0,0,"CreateVirtualDisk fail!\n");
-		return STATUS_UNSUCCESSFUL;
-	}*/
-
 	status = IoCreateDevice(DriverObject,		// pointer on DriverObject
 		0,					// additional size of memory
 		&gDeviceName,		// pointer to UNICODE_STRING
