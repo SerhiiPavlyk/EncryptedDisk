@@ -14,7 +14,7 @@ typedef struct MManager
 
 MountManager DataOfMountManager;
 
-NTSTATUS MountManagerInit(PDRIVER_OBJECT DriverObject);
+VOID MountManagerInit(PDRIVER_OBJECT DriverObject);
 
 NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp);
 
@@ -23,5 +23,5 @@ int Mount(UINT32 totalLength);
 VOID Unmount(UINT32 deviceId);
 
 VOID MountManagerRequestExchange(UINT32 devID, UINT32 lastType, UINT32 lastStatus,
-	UINT32 lastSize, char* buf, UINT32 bufSize, UINT32* type, UINT32* length, UINT32* offset);
+	UINT32 lastSize, char* buf, UINT32* type, UINT32* length, UINT32* offset);
 

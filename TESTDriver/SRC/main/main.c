@@ -11,7 +11,7 @@ UNICODE_STRING gDeviceName = RTL_CONSTANT_STRING(L"\\Device\\DEVICE_TEST_NAME");
 UNICODE_STRING gSymbolicLinkName = RTL_CONSTANT_STRING(L"\\Device\\Symbolic_Link_Name_TEST");
 
 
-NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
+NTSTATUS dispatch_irp( _In_ PIRP Irp);
 
 
 
@@ -30,7 +30,7 @@ NTSTATUS IrpHandler(IN PDEVICE_OBJECT fdo, IN PIRP pIrp)
 	NTSTATUS status = STATUS_SUCCESS;
 	if (fdo == gDeviceObject)
 	{
-		return dispatch_irp(fdo, pIrp);
+		return dispatch_irp(pIrp);
 	}
 	//DbgBreakPoint();
 	PDeviceId devExt = (PDeviceId)fdo->DeviceExtension;
@@ -41,7 +41,7 @@ NTSTATUS IrpHandler(IN PDEVICE_OBJECT fdo, IN PIRP pIrp)
 	{
 		status = CompleteIrp(pIrp, STATUS_NO_SUCH_DEVICE, 0);
 	}
-	
+
 	return status;
 }
 
@@ -62,14 +62,14 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 
 	if (status != STATUS_SUCCESS)
 	{
-		DbgPrintEx(0,0,"IoCreateDevice fail!\n");
+		DbgPrintEx(0, 0, "IoCreateDevice fail!\n");
 		return STATUS_FAILED_DRIVER_ENTRY;
 	}
 
 	status = IoCreateSymbolicLink(&gSymbolicLinkName, &gDeviceName);
 	if (status != STATUS_SUCCESS)
 	{
-		DbgPrintEx(0,0,"IoCreateSymbolicLink fail!\n");
+		DbgPrintEx(0, 0, "IoCreateSymbolicLink fail!\n");
 		return STATUS_FAILED_DRIVER_ENTRY;
 	}
 
@@ -87,77 +87,64 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 
 
 
-NTSTATUS DispatchMount(PVOID buffer,
-	ULONG inputBufferLength,
-	ULONG outputBufferLength)
+NTSTATUS DispatchMount(PVOID buffer, ULONG inputBufferLength, ULONG outputBufferLength)
 {
-
-	if (inputBufferLength >= sizeof(CoreMNTMountRequest) ||
-		outputBufferLength >= sizeof(CoreMNTMountResponse))
-	{
-
-		CoreMNTMountRequest* request = (CoreMNTMountRequest*)buffer;
-		UINT32 totalLength = request->totalLength;
-		CoreMNTMountResponse* response = (CoreMNTMountResponse*)buffer;
-		//CreateVirtualDisk();
-		response->deviceId = Mount(totalLength);
-		return STATUS_SUCCESS;
-	}
-	else
+	if (inputBufferLength < sizeof(CoreMNTMountRequest) ||
+		outputBufferLength < sizeof(CoreMNTMountResponse))
 	{
 		DbgPrintEx(0, 0, "DispatchMount() - buffer size mismatch");
 		return STATUS_UNSUCCESSFUL;
 	}
+	CoreMNTMountRequest* request = (CoreMNTMountRequest*)buffer;
+	UINT32 totalLength = (UINT32)request->totalLength;
+	CoreMNTMountResponse* response = (CoreMNTMountResponse*)buffer;
+	//CreateVirtualDisk();
+	response->deviceId = Mount(totalLength);
+	return STATUS_SUCCESS;
+
 }
 NTSTATUS DispatchExchange(PVOID buffer, ULONG inputBufferLength, ULONG outputBufferLength)
 {
 
-	if (inputBufferLength >= sizeof(CoreMNTExchangeRequest) ||
-		outputBufferLength >= sizeof(CoreMNTExchangeResponse))
-	{
-		CoreMNTExchangeRequest* request = (CoreMNTExchangeRequest*)buffer;
-
-		CoreMNTExchangeResponse response = { 0 };
-		MountManagerRequestExchange(request->deviceId,
-			request->lastType,
-			request->lastStatus,
-			request->lastSize,
-			request->data,
-			request->dataSize,
-			&response.type,
-			&response.size,
-			&response.offset);
-		memcpy(buffer, &response, sizeof(response));
-		return STATUS_SUCCESS;
-	}
-	else
+	if (inputBufferLength < sizeof(CoreMNTExchangeRequest) ||
+		outputBufferLength < sizeof(CoreMNTExchangeResponse))
 	{
 		DbgPrintEx(0, 0, "DispatchExchange() - buffer size mismatch");
 		return STATUS_UNSUCCESSFUL;
 	}
+	CoreMNTExchangeRequest* request = (CoreMNTExchangeRequest*)buffer;
+
+	CoreMNTExchangeResponse response = { 0 };
+	MountManagerRequestExchange(request->deviceId,
+		request->lastType,
+		request->lastStatus,
+		request->lastSize,
+		request->data,
+		&response.type,
+		&response.size,
+		&(UINT32)response.offset);
+	memcpy(buffer, &response, sizeof(response));
+	return STATUS_SUCCESS;
 }
-NTSTATUS DispatchUnmount(PVOID buffer, ULONG inputBufferLength, ULONG outputBufferLength)
+NTSTATUS DispatchUnmount(PVOID buffer, ULONG inputBufferLength)
 {
 	DbgBreakPoint();
-	if (inputBufferLength >= sizeof(CoreMNTUnmountRequest))
-	{
-		CHAR writeData[256];
-		RtlCopyMemory(writeData, buffer, inputBufferLength);
-		CoreMNTUnmountRequest request;
-		request.deviceId = writeData[0] - '0';
-		Unmount(request.deviceId);
-		return STATUS_SUCCESS;
-	}
-	else
+	if (inputBufferLength < sizeof(CoreMNTUnmountRequest))
 	{
 		DbgPrintEx(0, 0, "DispatchUnmount() - buffer size mismatch");
 		return STATUS_UNSUCCESSFUL;
 	}
+	CHAR writeData[256];
+	RtlCopyMemory(writeData, buffer, inputBufferLength);
+	CoreMNTUnmountRequest request;
+	request.deviceId = writeData[0] - '0';
+	Unmount(request.deviceId);
+	return STATUS_SUCCESS;
 }
 
 
 
-NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
+NTSTATUS dispatch_irp( _In_ PIRP Irp)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
@@ -165,23 +152,6 @@ NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 	//disk
 	switch (ioStack->MajorFunction)
 	{
-
-		//case IRP_MJ_READ:
-		//	status = handle_read_request(DeviceObject, Irp);
-		//	//xorEncrypt
-		//	break;
-		//case IRP_MJ_WRITE:
-		//	status = handle_write_request(DeviceObject, Irp);
-		//	//xorEncrypt
-		//	break;
-		//case IRP_MJ_DEVICE_CONTROL:
-		//	status = handle_ioctl_request(DeviceObject, Irp);
-		//	break;
-		//	//case://autorth
-		//		//create disk
-		//		//mount 
-		//		//unmount
-
 
 	case IRP_MJ_CREATE:
 	case IRP_MJ_CLOSE:
@@ -197,13 +167,12 @@ NTSTATUS dispatch_irp(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 		{
 		case CORE_MNT_MOUNT_IOCTL:
 			status = DispatchMount(buffer, inputBufferLength, outputBufferLength);
-			DbgPrintEx(0, 0, "Dummy Driver: CORE_MNT_MOUNT_IOCTL\n");
 			break;
 		case CORE_MNT_EXCHANGE_IOCTL:
 			status = DispatchExchange(buffer, inputBufferLength, outputBufferLength);
 			break;
 		case CORE_MNT_UNMOUNT_IOCTL:
-			status = DispatchUnmount(buffer, inputBufferLength, outputBufferLength);
+			status = DispatchUnmount(buffer, inputBufferLength);
 			break;
 		}
 		return CompleteIrp(Irp, status, outputBufferLength);

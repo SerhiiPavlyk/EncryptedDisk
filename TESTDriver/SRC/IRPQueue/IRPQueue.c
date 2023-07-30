@@ -3,7 +3,7 @@
 
 void KernelCustomEventInit(BOOLEAN initState, KEVENT *EventData)
 {
-	KeInitializeEvent(&EventData, NotificationEvent, initState);
+	KeInitializeEvent(EventData, NotificationEvent, initState);
 }
 
 void set(KEVENT * EventData)

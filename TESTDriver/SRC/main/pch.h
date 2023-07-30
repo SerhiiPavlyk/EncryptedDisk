@@ -3,7 +3,7 @@
 #include <ntifs.h> 
 #include <winsmcrd.h>
 #include <handleapi.h>
-#include <winioctl.h >
+#include <wdm.h>
 #include <ntdddisk.h>
 #include <ntddcdrm.h>
 #include <mountdev.h>
@@ -13,7 +13,7 @@
 
 #define DIRECT_DISK_PREFIX ROOT_DIR_NAME L"\\disk"
 
-#define MOUNTDEVCONTROLTYPE                 ((ULONG)'M')
+//#define MOUNTDEVCONTROLTYPE                 ((ULONG)'M')
 #define IOCTL_MOUNTDEV_UNIQUE_ID_CHANGE_NOTIFY_READWRITE CTL_CODE(MOUNTDEVCONTROLTYPE, 1, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
 
 #define CORE_MNT_DISPATCHER        0x8001
@@ -31,7 +31,7 @@
 
 
 #define IOCTL_MOUNTDEV_UNIQUE_ID_CHANGE_NOTIFY    CTL_CODE(MOUNTDEVCONTROLTYPE, 1, METHOD_BUFFERED, FILE_ANY_ACCESS)
-
+#define 	TOC_DATA_TRACK   0x04
 
 #define MAX_SIZE 25
 

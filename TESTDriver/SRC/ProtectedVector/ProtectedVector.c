@@ -24,12 +24,20 @@ void initProtectedVectorAddEvent(Vector* vector, UINT32 capacity, KEVENT* Kevent
 void push_back(Vector* vector, PIRP value)
 {
     enterSpinLock(&vector->mutex);
+    
     if (vector->size >= vector->capacity)
     {
         vector->capacity *= 2;  // Double the capacity when it's full
-        vector->data = (PIRP*)ExAllocatePoolWithTag(NonPagedPool, vector->capacity * sizeof(PIRP), "mntDisk");
+        vector->data = (PIRP*)ExAllocatePoolWithTag(NonPagedPool, vector->capacity * sizeof(PIRP), 'MYVC');
     }
-    vector->data[vector->size++] = value;
+    if (vector->data != NULL)
+    {
+        vector->data[vector->size++] = value;
+    }
+    else
+    {
+        return;
+    }
     if (vector->size == 1 && KeReadStateEvent(vector->notEmptyEvent_))
         set(vector->notEmptyEvent_);
     leaveSpinLock(&vector->mutex);

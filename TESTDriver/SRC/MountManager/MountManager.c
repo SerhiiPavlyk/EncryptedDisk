@@ -2,7 +2,7 @@
 #include "MountManager/MountManager.h"
 
 
-NTSTATUS MountManagerInit(PDRIVER_OBJECT DriverObject)
+void MountManagerInit(PDRIVER_OBJECT DriverObject)
 {
 	DataOfMountManager.DriverObject = DriverObject;
 	DataOfMountManager.gMountedDiskCount = 0;
@@ -70,7 +70,7 @@ int Mount(UINT32 totalLength)
 		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 	}
 
-	PMOUNTEDDISK disk = (PMOUNTEDDISK)ExAllocatePoolWithTag(NonPagedPool, sizeof(MOUNTEDDISK), "mntDisk");
+	PMOUNTEDDISK disk = (PMOUNTEDDISK)ExAllocatePoolWithTag(NonPagedPool, sizeof(MOUNTEDDISK), 'MYVC');
 	if (disk == NULL)
 	{
 		DbgPrintEx(0, 0, "Failed to mount disk\n");
@@ -92,14 +92,14 @@ int Mount(UINT32 totalLength)
 		{
 			DbgPrintEx(0, 0, "VirtDiskList is full!\n");
 			ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-			ExFreePoolWithTag(disk, "mntDisk");
+			ExFreePoolWithTag(disk, 'MYVC');
 			return -1;
 		}
 
 		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 	}
 
-	ExFreePoolWithTag(disk, "mntDisk");
+	ExFreePoolWithTag(disk, 'MYVC');
 	return devId;
 }
 
@@ -125,18 +125,18 @@ VOID Unmount(UINT32 deviceId)			//ввиду того, что буква Тома выбирается в любом 
 									// P.S. возможно это не лучший вариант :)
 
 		DbgPrintEx(0, 0, "Disk successfully deleted!\n");
-		return STATUS_SUCCESS;
+		return;
 	}
 	else
 	{
 		DbgPrintEx(0, 0, "Invalid parameter - disk NOT FOUND");
-		return STATUS_INVALID_PARAMETER;
+		return;
 	}
 }
 
 
 VOID MountManagerRequestExchange(UINT32 devID, UINT32 lastType, UINT32 lastStatus, UINT32 lastSize, char* buf,
-	UINT32 bufSize, UINT32* type, UINT32* length, UINT32* offset)
+	 UINT32* type, UINT32* length, UINT32* offset)
 {
 	PMOUNTEDDISK disk = NULL;
 	{
@@ -155,7 +155,7 @@ VOID MountManagerRequestExchange(UINT32 devID, UINT32 lastType, UINT32 lastStatu
 	if (disk == NULL)
 		DbgPrintEx(0, 0, "RequestExchange() - Disk NOT FOUND\n");
 
-	MountedDiskRequestExchange(lastType, lastStatus, lastSize, buf, bufSize,
+	MountedDiskRequestExchange(lastType, lastStatus, lastSize, buf,
 		type, length, offset, disk);
 }
 

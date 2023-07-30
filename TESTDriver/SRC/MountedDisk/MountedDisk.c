@@ -1,7 +1,7 @@
 #include "main/pch.h"
 #include "MountedDisk/MountedDisk.h"
 
-void InitMountDisk(PDRIVER_OBJECT DriverObject, UINT32 devId, UINT32 totalLength, PMOUNTEDDISK disk)
+VOID InitMountDisk(PDRIVER_OBJECT DriverObject, UINT32 devId, UINT32 totalLength, PMOUNTEDDISK disk)
 {
 	IrpHandlerInit(devId, totalLength, DriverObject, disk);
 	KernelCustomEventInit(FALSE, &disk->irpQueueNotEmpty_);
@@ -10,7 +10,7 @@ void InitMountDisk(PDRIVER_OBJECT DriverObject, UINT32 devId, UINT32 totalLength
 	disk->pIrp = NULL;
 }
 
-void DesctructorMountDisk(PMOUNTEDDISK disk)
+VOID DesctructorMountDisk(PMOUNTEDDISK disk)
 {
 	set(&disk->stopEvent_);
 	if (disk->pIrp)
@@ -61,7 +61,7 @@ void MountedDiskCompleteLastIrp(NTSTATUS status, ULONG information, PMOUNTEDDISK
 	disk->pIrp = 0;
 }
 
-void MountedDiskRequestExchange(UINT32 lastType, UINT32 lastStatus, UINT32 lastSize, char* buf, UINT32 bufSize, UINT32* type, UINT32* length, UINT64* offset, PMOUNTEDDISK disk)
+VOID MountedDiskRequestExchange(UINT32 lastType, UINT32 lastStatus, UINT32 lastSize, char* buf, UINT32* type, UINT32* length, UINT32* offset, PMOUNTEDDISK disk)
 {
 	if (lastType != directOperationEmpty)
 	{

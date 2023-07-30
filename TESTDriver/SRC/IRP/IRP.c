@@ -70,14 +70,14 @@ void IrpHandlerGetIrpParam(PIRP irp, IrpParam* irpParam)
 	{
 		irpParam->type = directOperationRead;
 		irpParam->size = ioStack->Parameters.Read.Length;
-		irpParam->offset = ioStack->Parameters.Read.ByteOffset.QuadPart;
+		irpParam->offset = (UINT32)ioStack->Parameters.Read.ByteOffset.QuadPart;
 	}
 	else
 		if (ioStack->MajorFunction == IRP_MJ_WRITE)
 		{
 			irpParam->type = directOperationWrite;
 			irpParam->size = ioStack->Parameters.Write.Length;
-			irpParam->offset = ioStack->Parameters.Write.ByteOffset.QuadPart;
+			irpParam->offset = (UINT32)ioStack->Parameters.Write.ByteOffset.QuadPart;
 		}
 	return;
 }
@@ -126,8 +126,8 @@ NTSTATUS IrpHandlerdispatch(PIRP irp)
 		
 		break;
 	default:
-		DbgPrintEx(0, 0, (__FUNCTION__"Unknown MJ fnc = 0x%x\n", ioStack->MajorFunction));
-		//status = STATUS_UNSUCCESSFUL;
+		DbgPrintEx(0, 0, "Unknown MJ fnc = 0x%02X\n", ioStack->MajorFunction);
+
 	}
 	return status;
 }
@@ -310,7 +310,7 @@ void dispatchIoctl(PIRP irp)
 		RtlZeroMemory(cdrom_toc, sizeof(CDROM_TOC));
 		cdrom_toc->FirstTrack = 1;
 		cdrom_toc->LastTrack = 1;
-		cdrom_toc->TrackData[0].Control = IOCTL_TOC_DATA_TRACK;
+		cdrom_toc->TrackData[0].Control = TOC_DATA_TRACK;
 		irp->IoStatus.Status = STATUS_SUCCESS;
 		irp->IoStatus.Information = sizeof(CDROM_TOC);
 		break;
