@@ -57,7 +57,7 @@ NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
 
 }
 
-int Mount(UINT32 totalLength)
+int Mount(UINT32 totalLength, const wchar_t* FileName)
 {
 
 	UINT32 devId = 0;
@@ -76,8 +76,10 @@ int Mount(UINT32 totalLength)
 		DbgPrintEx(0, 0, "Failed to mount disk\n");
 		return -1;
 	}
+	RtlInitUnicodeString(&disk->FileName, FileName);
+	
 	InitMountDisk(DataOfMountManager.DriverObject, devId, totalLength, disk);
-
+	MDCreateDisk(disk, disk->pIrp);
 	{
 		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
 		int i = devId;

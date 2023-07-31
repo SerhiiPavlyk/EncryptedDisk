@@ -17,8 +17,8 @@ typedef struct IrpHandlerStruct {
 typedef struct IrpParametrs
 {
 	int type;
-	UINT32 size;
-	UINT32 offset;
+	PLARGE_INTEGER size;
+	PLARGE_INTEGER offset;
 	char* buffer;
 }IrpParam;
 
@@ -27,6 +27,8 @@ typedef struct MountedDisk
 	IrpStruct irpDispatcher;
 	PIRP pIrp;
 	UNICODE_STRING FileName;
+	HANDLE fileHandle;
+	LARGE_INTEGER               fileSize;
 	PUNICODE_STRING password;
 	KEVENT irpQueueNotEmpty_;
 	KEVENT stopEvent_;

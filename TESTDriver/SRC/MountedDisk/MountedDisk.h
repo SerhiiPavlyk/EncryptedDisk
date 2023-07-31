@@ -15,3 +15,5 @@ void MountedDiskCompleteLastIrp(NTSTATUS status, ULONG information, PMOUNTEDDISK
 
 void MountedDiskRequestExchange(UINT32 lastType, UINT32 lastStatus, UINT32 lastSize, char* buf,
 	UINT32* type, UINT32* length, UINT32* offset, PMOUNTEDDISK disk);
+
+VOID MDCreateDisk(PMOUNTEDDISK disk, PIRP Pirp);

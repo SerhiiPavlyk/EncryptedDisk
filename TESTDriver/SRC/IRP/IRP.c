@@ -44,16 +44,6 @@ NTSTATUS IrpHandlerInit(UINT32 devId, UINT32 totalLength, PDRIVER_OBJECT DriverO
 	devExt->deviceId = devId;
 	deviceObject->Flags |= DO_DIRECT_IO;
 	deviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
-	Mdisk->FileName.Buffer = (WCHAR*)ExAllocatePool(NonPagedPool, deviceName.Length);
-	if (!Mdisk->FileName.Buffer)
-	{
-		// Handle allocation failure
-		return STATUS_INSUFFICIENT_RESOURCES;
-	}
-	// Copy the contents of deviceName to Mdisk->FileName
-	Mdisk->FileName.Length = deviceName.Length;
-	Mdisk->FileName.MaximumLength = deviceName.Length;
-	RtlCopyUnicodeString(&Mdisk->FileName, &deviceName);
 
 	Mdisk->irpDispatcher = IrpData;
 	return status;

@@ -7,6 +7,7 @@
 #include <ntdddisk.h>
 #include <ntddcdrm.h>
 #include <mountdev.h>
+#include <ntdef.h> // Include the necessary header for OBJECT_ATTRIBUTES
 #define _NO_CRT_STDIO_INLINE
 
 #define ROOT_DIR_NAME        L"\\??\\H:\\DISK"
@@ -35,6 +36,7 @@
 typedef struct CORE_MNT_MOUNT_REQUEST
 {
 	ULONG64 totalLength;
+	const wchar_t* FileName;
 	WCHAR   mountPoint;
 }CoreMNTMountRequest;
 

@@ -7,7 +7,9 @@ VOID InitMountDisk(PDRIVER_OBJECT DriverObject, UINT32 devId, UINT32 totalLength
 	KernelCustomEventInit(FALSE, &disk->irpQueueNotEmpty_);
 	initProtectedVectorAddEvent(&disk->irpQueue_, 1, &disk->irpQueueNotEmpty_);
 	KernelCustomEventInit(FALSE, &disk->stopEvent_);
-	disk->pIrp = NULL;
+	//disk->pIrp = NULL;
+	
+
 }
 
 VOID DesctructorMountDisk(PMOUNTEDDISK disk)
@@ -21,7 +23,86 @@ VOID DesctructorMountDisk(PMOUNTEDDISK disk)
 
 	deleteDevice(disk);
 	destroy(&disk->irpQueue_);
-	ExFreePoolWithTag(disk->FileName.Buffer, 'MYVC');
+}
+
+VOID MDCreateDisk(PMOUNTEDDISK disk, PIRP Pirp)
+{
+	OBJECT_ATTRIBUTES objectAttributes;
+
+	FILE_END_OF_FILE_INFORMATION    file_eof;
+	FILE_BASIC_INFORMATION          file_basic;
+	FILE_STANDARD_INFORMATION       file_standard;
+	FILE_ALIGNMENT_INFORMATION      file_alignment;
+	IO_STATUS_BLOCK block;
+	DbgBreakPoint();
+	/*strcpy(OpenFileInformation->FileName, "\\??\\UNC");
+	strcat(OpenFileInformation->FileName, FileName + 1);*/
+	WCHAR* buff = L"\\??\\H:\\filedisk.txt";
+	UNICODE_STRING name;
+	
+	RtlInitUnicodeString(&name, buff);
+	InitializeObjectAttributes(&objectAttributes, &name, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, 0, NULL);
+	NTSTATUS status = ZwCreateFile(
+		&disk->fileHandle,
+		GENERIC_READ | GENERIC_WRITE |
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		&objectAttributes,
+		&block, // ÕÇ שמ עמ 
+		NULL,
+		FILE_ATTRIBUTE_NORMAL,
+		0,
+		FILE_OPEN_IF,
+		FILE_NON_DIRECTORY_FILE |
+		FILE_RANDOM_ACCESS |
+		FILE_NO_INTERMEDIATE_BUFFERING |
+		FILE_SYNCHRONOUS_IO_NONALERT,
+		NULL,
+		0
+	);
+	if (status != STATUS_SUCCESS)
+	{
+		DbgPrintEx(0, 0, "ZwCreateFile failed");
+		return;
+	}
+	status = ZwQueryInformationFile(
+		disk->fileHandle,
+		&Pirp->IoStatus,
+		&file_basic,
+		sizeof(FILE_BASIC_INFORMATION),
+		FileBasicInformation
+	);
+	if (status != STATUS_SUCCESS)
+	{
+		DbgPrintEx(0, 0, "ZwQueryInformationFile 1 failed");
+		return;
+	}
+	status = ZwQueryInformationFile(
+		disk->fileHandle,
+		&Pirp->IoStatus,
+		&file_standard,
+		sizeof(FILE_STANDARD_INFORMATION),
+		FileStandardInformation
+	);
+	if (status != STATUS_SUCCESS)
+	{
+		DbgPrintEx(0, 0, "ZwQueryInformationFile 2 failed");
+		return;
+	}
+	disk->fileSize.QuadPart = file_standard.EndOfFile.QuadPart;
+	status = ZwQueryInformationFile(
+		disk->fileHandle,
+		&Pirp->IoStatus,
+		&file_alignment,
+		sizeof(FILE_ALIGNMENT_INFORMATION),
+		FileAlignmentInformation
+	);
+	if (status != STATUS_SUCCESS)
+	{
+		DbgPrintEx(0, 0, "ZwQueryInformationFile 3 failed");
+		return;
+	}
+	disk->irpDispatcher.deviceObject_->AlignmentRequirement = file_alignment.AlignmentRequirement;
+	ZwClose(disk->fileHandle);
 }
 
 NTSTATUS MountedDiskDispatchIrp(PIRP irp, PMOUNTEDDISK disk)
@@ -32,9 +113,10 @@ NTSTATUS MountedDiskDispatchIrp(PIRP irp, PMOUNTEDDISK disk)
 	irpParam.size = 0;
 	irpParam.type = 0;
 	IrpHandlerGetIrpParam(irp, &irpParam);
+	NTSTATUS status = STATUS_SUCCESS;
 	if (irpParam.type == directOperationEmpty)
 	{
-		NTSTATUS status = STATUS_SUCCESS;
+		
 		status = IrpHandlerdispatch(irp);
 		if (status != STATUS_SUCCESS)
 		{
@@ -45,6 +127,68 @@ NTSTATUS MountedDiskDispatchIrp(PIRP irp, PMOUNTEDDISK disk)
 		status = irp->IoStatus.Status;
 
 		IoCompleteRequest(irp, IO_NO_INCREMENT);
+		return status;
+	}
+	else if (irpParam.type == directOperationRead)
+	{
+		MDCreateDisk(disk, irp);
+		PUCHAR              system_buffer;
+		PUCHAR              buffer;
+		system_buffer = (PUCHAR)MmGetSystemAddressForMdlSafe(irp->MdlAddress, NormalPagePriority);
+		if (system_buffer == NULL)
+		{
+			irp->IoStatus.Status = STATUS_INSUFFICIENT_RESOURCES;
+			irp->IoStatus.Information = 0;
+			status = STATUS_UNSUCCESSFUL;
+			return status;
+		}
+		buffer = (PUCHAR)ExAllocatePoolWithTag(PagedPool, irpParam.size, 'XXX');
+		if (buffer == NULL)
+		{
+			irp->IoStatus.Status = STATUS_INSUFFICIENT_RESOURCES;
+			irp->IoStatus.Information = 0;
+			status = STATUS_UNSUCCESSFUL;
+			return status;
+		}
+		status = ZwReadFile(
+			disk->fileHandle,
+			NULL,
+			NULL,
+			NULL,
+			&irp->IoStatus,
+			buffer,
+			irpParam.size,
+			&irpParam.offset,
+			NULL
+		);
+		RtlCopyMemory(system_buffer, buffer, irpParam.size);
+		ExFreePool(buffer);
+		return status;
+	}
+	else if (irpParam.type == directOperationWrite)
+	{
+		MDCreateDisk(disk, irp);
+		PUCHAR              system_buffer;
+		PUCHAR              buffer;
+		/*if (irpParam.offset +
+			irpParam.size) >
+			device_extension->file_size.QuadPart)
+		{
+			irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
+			irp->IoStatus.Information = 0;
+			break;
+		}*/
+		status = ZwWriteFile(
+			disk->fileHandle,
+			NULL,
+			NULL,
+			NULL,
+			&irp->IoStatus,
+			MmGetSystemAddressForMdlSafe(irp->MdlAddress, NormalPagePriority),
+			irpParam.size,
+			&irpParam.offset,
+			NULL
+		);
 		return status;
 	}
 	IoMarkIrpPending(irp);

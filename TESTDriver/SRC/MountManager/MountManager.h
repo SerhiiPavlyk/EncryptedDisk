@@ -18,7 +18,7 @@ VOID MountManagerInit(PDRIVER_OBJECT DriverObject);
 
 NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp);
 
-int Mount(UINT32 totalLength);
+int Mount(UINT32 totalLength, const wchar_t* FileName);
 
 VOID Unmount(UINT32 deviceId);
 

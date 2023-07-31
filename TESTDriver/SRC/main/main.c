@@ -11,7 +11,7 @@ UNICODE_STRING gDeviceName = RTL_CONSTANT_STRING(L"\\Device\\DEVICE_TEST_NAME");
 UNICODE_STRING gSymbolicLinkName = RTL_CONSTANT_STRING(L"\\Device\\Symbolic_Link_Name_TEST");
 
 
-NTSTATUS dispatch_irp( _In_ PIRP Irp);
+NTSTATUS dispatch_irp(_In_ PIRP Irp);
 
 
 
@@ -98,8 +98,8 @@ NTSTATUS DispatchMount(PVOID buffer, ULONG inputBufferLength, ULONG outputBuffer
 	CoreMNTMountRequest* request = (CoreMNTMountRequest*)buffer;
 	UINT32 totalLength = (UINT32)request->totalLength;
 	CoreMNTMountResponse* response = (CoreMNTMountResponse*)buffer;
-	//CreateVirtualDisk();
-	response->deviceId = Mount(totalLength);
+	DbgBreakPoint();
+	response->deviceId = Mount(totalLength, request->FileName);
 	return STATUS_SUCCESS;
 
 }
@@ -144,7 +144,7 @@ NTSTATUS DispatchUnmount(PVOID buffer, ULONG inputBufferLength)
 
 
 
-NTSTATUS dispatch_irp( _In_ PIRP Irp)
+NTSTATUS dispatch_irp(_In_ PIRP Irp)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
