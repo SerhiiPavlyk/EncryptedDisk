@@ -117,20 +117,19 @@ VOID Unmount(UINT32 deviceId)			//ввиду того, что буква Тома выбирается в любом 
 		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 		DbgPrintEx(0, 0, "Disk successfully deleted!\n");
 	}
-	else if (deviceId == DataOfMountManager.gMountedDiskCount)
+	else if (deviceId == DataOfMountManager.gMountedDiskCount - 1)
 	{
 		DataOfMountManager.gMountedDiskCount--;				//просто уменьшаем число созданных дисков, чтобы
 									// 1. при показе всех дисков последний не показывался
 									// 2. при создании нового диска, данные перепишутся поверх последнего диска, который "удалили"
 									// P.S. возможно это не лучший вариант :)
-
+		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 		DbgPrintEx(0, 0, "Disk successfully deleted!\n");
-		return;
 	}
 	else
 	{
 		DbgPrintEx(0, 0, "Invalid parameter - disk NOT FOUND");
-		return;
+		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
 	}
 }
 

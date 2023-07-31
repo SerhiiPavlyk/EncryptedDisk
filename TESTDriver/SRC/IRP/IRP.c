@@ -42,7 +42,6 @@ NTSTATUS IrpHandlerInit(UINT32 devId, UINT32 totalLength, PDRIVER_OBJECT DriverO
 	memset(devExt, 0, sizeof(DeviceId));
 
 	devExt->deviceId = devId;
-
 	deviceObject->Flags |= DO_DIRECT_IO;
 	deviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 	Mdisk->FileName.Buffer = (WCHAR*)ExAllocatePool(NonPagedPool, deviceName.Length);
