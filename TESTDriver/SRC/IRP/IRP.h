@@ -41,9 +41,9 @@ NTSTATUS IrpHandlerInit(UINT32 devId, UINT32 totalLength, PDRIVER_OBJECT DriverO
 
 void IrpHandlerGetIrpParam(PIRP irp, IrpParam* irpParam);
 
-NTSTATUS IrpHandlerdispatch(PIRP irp);
+NTSTATUS IrpHandlerdispatch(PIRP irp, PMOUNTEDDISK disk);
 
-void dispatchIoctl(PIRP irp);
+NTSTATUS dispatchIoctl(PIRP irp, PMOUNTEDDISK disk);
 
 PVOID getIrpBuffer(PIRP irp);
 

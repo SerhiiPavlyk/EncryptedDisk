@@ -8,6 +8,7 @@
 #include <ntddcdrm.h>
 #include <mountdev.h>
 #include <ntdef.h> // Include the necessary header for OBJECT_ATTRIBUTES
+#include <ntddvol.h>
 #define _NO_CRT_STDIO_INLINE
 
 #define ROOT_DIR_NAME        L"\\??\\H:\\DISK"

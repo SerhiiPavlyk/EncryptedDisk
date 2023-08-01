@@ -8,7 +8,7 @@ VOID InitMountDisk(PDRIVER_OBJECT DriverObject, UINT32 devId, UINT32 totalLength
 	initProtectedVectorAddEvent(&disk->irpQueue_, 1, &disk->irpQueueNotEmpty_);
 	KernelCustomEventInit(FALSE, &disk->stopEvent_);
 	//disk->pIrp = NULL;
-	
+	disk->fileSize.QuadPart = totalLength;
 
 }
 
@@ -117,7 +117,7 @@ NTSTATUS MountedDiskDispatchIrp(PIRP irp, PMOUNTEDDISK disk)
 	if (irpParam.type == directOperationEmpty)
 	{
 		
-		status = IrpHandlerdispatch(irp);
+		status = IrpHandlerdispatch(irp,disk);
 		if (status != STATUS_SUCCESS)
 		{
 			DbgPrintEx(0, 0, "IrpHandlerdispatch failed");
