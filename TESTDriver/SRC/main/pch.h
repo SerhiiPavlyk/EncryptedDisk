@@ -9,11 +9,36 @@
 #include <mountdev.h>
 #include <ntdef.h> // Include the necessary header for OBJECT_ATTRIBUTES
 #include <ntddvol.h>
+#include <ntstrsafe.h>
+
+#include <wdmsec.h>
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwOpenProcessToken(
+	IN HANDLE       ProcessHandle,
+	IN ACCESS_MASK  DesiredAccess,
+	OUT PHANDLE     TokenHandle
+);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwAdjustPrivilegesToken(
+	IN HANDLE               TokenHandle,
+	IN BOOLEAN              DisableAllPrivileges,
+	IN PTOKEN_PRIVILEGES    NewState,
+	IN ULONG                BufferLength,
+	OUT PTOKEN_PRIVILEGES   PreviousState OPTIONAL,
+	OUT PULONG              ReturnLength
+);
+
 #define _NO_CRT_STDIO_INLINE
 
-#define ROOT_DIR_NAME        L"\\??\\H:\\DISK"
+#define DISK_TAG 'disk'
 
-#define DIRECT_DISK_PREFIX ROOT_DIR_NAME L"\\disk"
+#define DIRECT_DISK_PREFIX L"\\Device\\Vdisk"
 
 //#define MOUNTDEVCONTROLTYPE                 ((ULONG)'M')
 #define IOCTL_MOUNTDEV_UNIQUE_ID_CHANGE_NOTIFY_READWRITE CTL_CODE(MOUNTDEVCONTROLTYPE, 1, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
@@ -78,3 +103,40 @@ typedef enum _DiskOperationType
 	directOperationFail,
 	directOperationMax = directOperationFail
 }DiskOperationType;
+
+
+#define IOCTL_FILE_DISK_OPEN_FILE \
+   CTL_CODE(FILE_DEVICE_DISK, 0x804, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+
+#define IOCTL_FILE_DISK_CLOSE_FILE \
+	CTL_CODE(FILE_DEVICE_DISK, 0x805, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+
+#define IOCTL_FILE_DISK_QUERY_FILE  \
+	CTL_CODE(FILE_DEVICE_DISK, 0x806, METHOD_BUFFERED, FILE_READ_ACCESS)
+#define IOCTL_FILE_DISK_CREATE_DISK  \
+	CTL_CODE(FILE_DEVICE_DISK, 0x807, METHOD_BUFFERED, FILE_READ_ACCESS)
+
+
+typedef struct _DEVICE_EXTENSION {
+	UNICODE_STRING              device_name;
+	HANDLE                      file_handle;
+	ANSI_STRING                 file_name;
+	ULONG                       device_ID;
+	LARGE_INTEGER               file_size;
+	PSECURITY_CLIENT_CONTEXT    security_client_context;//////
+	LIST_ENTRY                  list_head;
+	BOOLEAN                     media_in_device;
+	KSPIN_LOCK                  list_lock;
+	KEVENT                      request_event;
+	PVOID                       thread_pointer;
+	BOOLEAN                     terminate_thread;
+} DEVICE_EXTENSION, * PDEVICE_EXTENSION;
+
+
+typedef struct DiskParam {
+	LARGE_INTEGER   Size;
+	//BOOLEAN         ReadOnly;
+	wchar_t           Letter;
+	USHORT          FileNameLength;
+	CHAR            FileName[1];
+} DISK_PARAMETERS, * PDISK_PARAMETERS;

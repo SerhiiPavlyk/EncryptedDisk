@@ -27,6 +27,8 @@ typedef struct MountedDisk
 	IrpStruct irpDispatcher;
 	PIRP pIrp;
 	UNICODE_STRING FileName;
+	UNICODE_STRING DeviceName;
+
 	HANDLE fileHandle;
 	LARGE_INTEGER               fileSize;
 	PUNICODE_STRING password;
@@ -37,16 +39,42 @@ typedef struct MountedDisk
 
 IrpStruct IrpData;
 
-NTSTATUS IrpHandlerInit(UINT32 devId, UINT32 totalLength, PDRIVER_OBJECT DriverObject, PMOUNTEDDISK Mdisk);
+//NTSTATUS IrpHandlerInit(UINT32 devId, UINT32 totalLength, PDRIVER_OBJECT DriverObject, PMOUNTEDDISK Mdisk);
+//
+//void IrpHandlerGetIrpParam(PIRP irp, IrpParam* irpParam);
+//
+//NTSTATUS IrpHandlerdispatch(PIRP irp, PMOUNTEDDISK disk);
+//
+//NTSTATUS dispatchIoctl(PIRP irp, PDEVICE_OBJECT object);
+//
+//PVOID getIrpBuffer(PIRP irp);
+//
+//NTSTATUS deleteDevice(PMOUNTEDDISK disk);
+//
+//NTSTATUS CompleteIrp(PIRP Irp, NTSTATUS status, ULONG info);
 
-void IrpHandlerGetIrpParam(PIRP irp, IrpParam* irpParam);
 
-NTSTATUS IrpHandlerdispatch(PIRP irp, PMOUNTEDDISK disk);
+VOID IOCTLHandle(IN PVOID Context);
 
-NTSTATUS dispatchIoctl(PIRP irp, PMOUNTEDDISK disk);
+NTSTATUS
+FileDiskAdjustPrivilege(
+	IN ULONG    Privilege,
+	IN BOOLEAN  Enable
+);
 
-PVOID getIrpBuffer(PIRP irp);
+NTSTATUS
+FileDiskReadWrite(
+	IN PDEVICE_OBJECT   DeviceObject,
+	IN PIRP             Irp
+);
 
-NTSTATUS deleteDevice(PMOUNTEDDISK disk);
+NTSTATUS FileDiskOpenFile(
+	IN PDEVICE_OBJECT   DeviceObject,
+	IN PIRP             Irp
+);
 
-NTSTATUS CompleteIrp(PIRP Irp, NTSTATUS status, ULONG info);
+NTSTATUS
+FileDiskCloseFile(
+	IN PDEVICE_OBJECT   DeviceObject,
+	IN PIRP             Irp
+);
