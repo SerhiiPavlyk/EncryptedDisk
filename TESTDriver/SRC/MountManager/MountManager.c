@@ -167,7 +167,7 @@ NTSTATUS MountManagerCreateDevice()
 	UNICODE_STRING      sddl;
 
 	ASSERT(DataOfMountManager.DriverObject != NULL);
-
+    DbgBreakPoint();
 	device_name.Buffer = (PWCHAR)ExAllocatePoolWithTag(PagedPool, MAXIMUM_FILENAME_LENGTH * 2, DISK_TAG);
 
 	if (device_name.Buffer == NULL)
@@ -178,7 +178,7 @@ NTSTATUS MountManagerCreateDevice()
 	device_name.Length = 0;
 	device_name.MaximumLength = MAXIMUM_FILENAME_LENGTH * 2;
 	DataOfMountManager.gMountedDiskCount++;
-	DbgBreakPoint();
+
 	RtlUnicodeStringPrintf(&device_name, DIRECT_DISK_PREFIX L"%u", (DataOfMountManager.gMountedDiskCount - 1));
 	RtlInitUnicodeString(&sddl, L"D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GA;;;BU)");
 
@@ -193,16 +193,6 @@ NTSTATUS MountManagerCreateDevice()
 		NULL,
 		&device_object
 	);
-
-	/*status = IoCreateDevice(
-		DataOfMountManager.DriverObject,
-		sizeof(DEVICE_EXTENSION),
-		&device_name,
-		FILE_DEVICE_DISK,
-		0,
-		FALSE,
-		&device_object
-	);*/
 
 	if (!NT_SUCCESS(status))
 	{
@@ -367,7 +357,6 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
     PDEVICE_EXTENSION               device_extension;
     PDISK_PARAMETERS          open_file_information;
-    UNICODE_STRING                  ufile_name;
     NTSTATUS                        status;
     OBJECT_ATTRIBUTES               object_attributes;
     FILE_END_OF_FILE_INFORMATION    file_eof;
@@ -381,12 +370,12 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
     ASSERT(Irp != NULL);
 
     device_extension = (PDEVICE_EXTENSION)DeviceObject->DeviceExtension;
-
+    DbgBreakPoint();
     open_file_information = (PDISK_PARAMETERS)Irp->AssociatedIrp.SystemBuffer;
 
-    device_extension->file_name.Length = open_file_information->FileNameLength;
-    device_extension->file_name.MaximumLength = open_file_information->FileNameLength;
-    device_extension->file_name.Buffer = ExAllocatePoolWithTag(NonPagedPool, open_file_information->FileNameLength, DISK_TAG);
+    device_extension->file_name.Length = open_file_information->FileNameLength * sizeof(wchar_t);
+    device_extension->file_name.MaximumLength = device_extension->file_name.Length + 1;
+    device_extension->file_name.Buffer = ExAllocatePoolWithTag(NonPagedPool, device_extension->file_name.Length, DISK_TAG);
 
     if (device_extension->file_name.Buffer == NULL)
     {
@@ -396,26 +385,12 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
     RtlCopyMemory(
         device_extension->file_name.Buffer,
         open_file_information->FileName,
-        open_file_information->FileNameLength
+        device_extension->file_name.Length
     );
-
-    status = RtlAnsiStringToUnicodeString(
-        &ufile_name,
-        &device_extension->file_name,
-        TRUE
-    );
-
-    if (!NT_SUCCESS(status))
-    {
-        ExFreePool(device_extension->file_name.Buffer);
-        Irp->IoStatus.Status = status;
-        Irp->IoStatus.Information = 0;
-        return status;
-    }
 
     InitializeObjectAttributes(
         &object_attributes,
-        &ufile_name,
+        &device_extension->file_name,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
@@ -440,16 +415,15 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 
     if (NT_SUCCESS(status))
     {
-        KdPrint(("FileDisk: File %.*S opened.\n", ufile_name.Length / 2, ufile_name.Buffer));
+        KdPrint(("FileDisk: File %.*S opened.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer));
     }
 
     if (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_NO_SUCH_FILE)
     {
         if ( open_file_information->Size.QuadPart == 0)
         {
-            DbgPrint("FileDisk: File %.*S not found.\n", ufile_name.Length / 2, ufile_name.Buffer);
+            DbgPrint("FileDisk: File %.*S not found.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
             ExFreePool(device_extension->file_name.Buffer);
-            RtlFreeUnicodeString(&ufile_name);
 
             Irp->IoStatus.Status = STATUS_NO_SUCH_FILE;
             Irp->IoStatus.Information = 0;
@@ -477,15 +451,14 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 
             if (!NT_SUCCESS(status))
             {
-                DbgPrint("FileDisk: File %.*S could not be created.\n", ufile_name.Length / 2, ufile_name.Buffer);
+                DbgPrint("FileDisk: File %.*S could not be created.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
                 ExFreePool(device_extension->file_name.Buffer);
-                RtlFreeUnicodeString(&ufile_name);
                 return status;
             }
 
             if (Irp->IoStatus.Information == FILE_CREATED)
             {
-                KdPrint(("FileDisk: File %.*S created.\n", ufile_name.Length / 2, ufile_name.Buffer));
+                KdPrint(("FileDisk: File %.*S created.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer));
                 status = ZwFsControlFile(
                     device_extension->file_handle,
                     NULL,
@@ -518,7 +491,6 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
                 {
                     DbgPrint("FileDisk: eof could not be set.\n");
                     ExFreePool(device_extension->file_name.Buffer);
-                    RtlFreeUnicodeString(&ufile_name);
                     ZwClose(device_extension->file_handle);
                     return status;
                 }
@@ -528,13 +500,10 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
     }
     else if (!NT_SUCCESS(status))
     {
-        DbgPrint("FileDisk: File %.*S could not be opened.\n", ufile_name.Length / 2, ufile_name.Buffer);
+        DbgPrint("FileDisk: File %.*S could not be opened.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
         ExFreePool(device_extension->file_name.Buffer);
-        RtlFreeUnicodeString(&ufile_name);
         return status;
     }
-
-    RtlFreeUnicodeString(&ufile_name);
 
     status = ZwQueryInformationFile(
         device_extension->file_handle,

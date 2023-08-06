@@ -149,13 +149,12 @@
 //}
 
 
-void xorEncrypt(char message[], const char key[])
+void xorEncrypt(PUCHAR message, ULONG size, const char key[])
 {
-	int msgLen = strlen(message);
 	int keyLen = strlen(key);
 	int i;
 
-	for (i = 0; i < msgLen; ++i)
+	for (i = 0; i < size; ++i)
 	{
 		// XOR each character with the corresponding character in the key
 		message[i] = message[i] ^ key[i % keyLen];
@@ -208,10 +207,20 @@ VOID IOCTLHandle(IN PVOID Context)
 			irp = CONTAINING_RECORD(request, IRP, Tail.Overlay.ListEntry);
 
 			io_stack = IoGetCurrentIrpStackLocation(irp);
-
+			//DbgBreakPoint();
 			switch (io_stack->MajorFunction)
 			{
 			case IRP_MJ_READ:
+			{
+				/*
+				std::cin >> password 
+					if (password != device_extension.password)
+					{
+						irp->IoStatus.Status = STATUS_INSUFFICIENT_RESOURCES;
+						irp->IoStatus.Information = 0;
+						return;
+					}*/
+				ULONG size = io_stack->Parameters.Read.Length;
 				system_buffer = (PUCHAR)MmGetSystemAddressForMdlSafe(irp->MdlAddress, NormalPagePriority);
 				if (system_buffer == NULL)
 				{
@@ -219,7 +228,7 @@ VOID IOCTLHandle(IN PVOID Context)
 					irp->IoStatus.Information = 0;
 					break;
 				}
-				buffer = (PUCHAR)ExAllocatePoolWithTag(PagedPool, io_stack->Parameters.Read.Length, DISK_TAG);
+				buffer = (PUCHAR)ExAllocatePoolWithTag(PagedPool, size, DISK_TAG);
 				if (buffer == NULL)
 				{
 					irp->IoStatus.Status = STATUS_INSUFFICIENT_RESOURCES;
@@ -233,28 +242,43 @@ VOID IOCTLHandle(IN PVOID Context)
 					NULL,
 					&irp->IoStatus,
 					buffer,
-					io_stack->Parameters.Read.Length,
+					size,
 					&io_stack->Parameters.Read.ByteOffset,
 					NULL
 				);
-				xorEncrypt(buffer, "disk");
-				RtlCopyMemory(system_buffer, buffer, io_stack->Parameters.Read.Length);
+				xorEncrypt(buffer, size, "disk");
+				RtlCopyMemory(system_buffer, buffer, size);
 				ExFreePool(buffer);
 				break;
-
+			}
 			case IRP_MJ_WRITE:
+			{
+				ULONG size = io_stack->Parameters.Write.Length;
 				if ((io_stack->Parameters.Write.ByteOffset.QuadPart +
-					io_stack->Parameters.Write.Length) >
+					size) >
 					device_extension->file_size.QuadPart)
 				{
 					irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
 					irp->IoStatus.Information = 0;
 					break;
 				}
-				buffer = (PUCHAR)ExAllocatePoolWithTag(PagedPool, io_stack->Parameters.Read.Length, DISK_TAG);
-				RtlCopyMemory(buffer, MmGetSystemAddressForMdlSafe(irp->MdlAddress, NormalPagePriority), io_stack->Parameters.Read.Length);
-				xorEncrypt(buffer, "disk");
-
+				system_buffer = (PUCHAR)MmGetSystemAddressForMdlSafe(irp->MdlAddress, NormalPagePriority);
+				if (system_buffer == NULL)
+				{
+					irp->IoStatus.Status = STATUS_INSUFFICIENT_RESOURCES;
+					irp->IoStatus.Information = 0;
+					break;
+				}
+				buffer = (PUCHAR)ExAllocatePoolWithTag(PagedPool, io_stack->Parameters.Write.Length, DISK_TAG);
+				if (buffer == NULL)
+				{
+					irp->IoStatus.Status = STATUS_INSUFFICIENT_RESOURCES;
+					irp->IoStatus.Information = 0;
+					break;
+				}
+				RtlCopyMemory(buffer, system_buffer, size);
+				xorEncrypt(buffer, size, "disk");
+				
 				ZwWriteFile(
 					device_extension->file_handle,
 					NULL,
@@ -268,7 +292,7 @@ VOID IOCTLHandle(IN PVOID Context)
 				);
 				ExFreePool(buffer);
 				break;
-
+			}
 			case IRP_MJ_DEVICE_CONTROL:
 				switch (io_stack->Parameters.DeviceIoControl.IoControlCode)
 				{

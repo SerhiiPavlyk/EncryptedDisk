@@ -113,6 +113,7 @@ typedef enum _DiskOperationType
 
 #define IOCTL_FILE_DISK_QUERY_FILE  \
 	CTL_CODE(FILE_DEVICE_DISK, 0x806, METHOD_BUFFERED, FILE_READ_ACCESS)
+
 #define IOCTL_FILE_DISK_CREATE_DISK  \
 	CTL_CODE(FILE_DEVICE_DISK, 0x807, METHOD_BUFFERED, FILE_READ_ACCESS)
 
@@ -120,7 +121,7 @@ typedef enum _DiskOperationType
 typedef struct _DEVICE_EXTENSION {
 	UNICODE_STRING              device_name;
 	HANDLE                      file_handle;
-	ANSI_STRING                 file_name;
+	UNICODE_STRING                 file_name;
 	ULONG                       device_ID;
 	LARGE_INTEGER               file_size;
 	PSECURITY_CLIENT_CONTEXT    security_client_context;//////
@@ -134,9 +135,8 @@ typedef struct _DEVICE_EXTENSION {
 
 
 typedef struct DiskParam {
-	LARGE_INTEGER   Size;
-	//BOOLEAN         ReadOnly;
-	wchar_t           Letter;
-	USHORT          FileNameLength;
-	CHAR            FileName[1];
+	LARGE_INTEGER		Size;
+	wchar_t				Letter;
+	USHORT				FileNameLength;
+	wchar_t				FileName[MAX_PATH];
 } DISK_PARAMETERS, * PDISK_PARAMETERS;
