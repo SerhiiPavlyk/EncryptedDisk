@@ -167,7 +167,7 @@ NTSTATUS MountManagerCreateDevice()
 	UNICODE_STRING      sddl;
 
 	ASSERT(DataOfMountManager.DriverObject != NULL);
-    DbgBreakPoint();
+
 	device_name.Buffer = (PWCHAR)ExAllocatePoolWithTag(PagedPool, MAXIMUM_FILENAME_LENGTH * 2, DISK_TAG);
 
 	if (device_name.Buffer == NULL)

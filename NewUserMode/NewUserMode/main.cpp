@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 				std::cout << "\nSyntax how to write disk size: \n"
 					<< "size[g | m | k]\n"
 					<< "where g - gigabytes, m - megabytes, k - kilobytes\n"
-					<< "EXAMPLE: 20M\n"
+					<< "EXAMPLE: 20m\n"
 					<< "Disk size: ";
 				std::cin >> DiskSize;
 				{
