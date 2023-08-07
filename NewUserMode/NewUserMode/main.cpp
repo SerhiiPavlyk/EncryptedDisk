@@ -27,9 +27,35 @@ int main(int argc, char* argv[])
 	wchar_t						DiskLetter;
 	char						DiskSize[32];
 	wchar_t						FilePath[MAX_PATH];
-	int							DeviceNumber = 0;
-
-
+	ULONG32							DeviceNumber = 0;
+	HANDLE                  Device;
+	DWORD                   BytesReturned;
+	wchar_t    DriverName[] = L"\\\\.\\GLOBALROOT\\Device\\DEVICE_TEST_NAME";
+	Device = CreateFile(DriverName,
+		GENERIC_READ | GENERIC_WRITE,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		NULL,
+		OPEN_EXISTING,
+		COPY_FILE_NO_BUFFERING,
+		NULL);
+	if (Device == INVALID_HANDLE_VALUE)
+	{
+		printf("Error opening device: %d\n", GetLastError());
+		return -1;
+	}
+	CoreMNTUnmountRequest *response = new CoreMNTUnmountRequest;
+	if (!DeviceIoControl(Device, IOCTL_FILE_DISK_GET_AMOUNT_OF_MOUNTED_DISKS, NULL, 0, response,
+		sizeof(response), &BytesReturned, NULL))
+	{
+		printf("Error sending IOCTL: %d\n", GetLastError());
+	}
+	else
+	{
+		printf("IOCTL_FILE_DISK_CREATE_DISK request sent successfully to the driver.\n");
+		std::cout << response->deviceId << std::endl;
+	}
+	CloseHandle(Device);
+	DeviceNumber = response->deviceId;
 	try
 	{
 		while (start)

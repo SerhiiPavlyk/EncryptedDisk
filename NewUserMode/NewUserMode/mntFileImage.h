@@ -12,6 +12,15 @@
 
 #define IOCTL_FILE_DISK_CREATE_DISK  \
 	CTL_CODE(FILE_DEVICE_DISK, 0x807, METHOD_BUFFERED, FILE_READ_ACCESS)
+
+#define IOCTL_FILE_DISK_GET_ALL_DISK  \
+	CTL_CODE(FILE_DEVICE_DISK, 0x808, METHOD_BUFFERED, FILE_READ_ACCESS)
+
+
+#define IOCTL_FILE_DISK_GET_AMOUNT_OF_MOUNTED_DISKS  \
+	CTL_CODE(FILE_DEVICE_DISK, 0x809, METHOD_BUFFERED, FILE_READ_ACCESS)
+
+
 //#include "mntImage.h"
 #include "windows.h"
 #include <shlobj.h>
@@ -21,17 +30,26 @@
 
 #define DIRECT_DISK_PREFIX L"\\Device\\Vdisk"
 #define MAX_FILE_NAME 32767
+#define NumDisks 20
 typedef struct DiskParam {
 	LARGE_INTEGER		Size;
 	wchar_t				Letter;
 	USHORT				FileNameLength;
 	wchar_t				FileName[MAX_PATH];
 } DISK_PARAMETERS, * PDISK_PARAMETERS;
-
-int DiskMount(int DeviceNumber, PDISK_PARAMETERS  diskParam);
+typedef struct DiskParamR {
+	LARGE_INTEGER		Size;
+	wchar_t				Letter;
+	USHORT				FileNameLength;
+	wchar_t				FileName[MAX_PATH];
+} Response, * PResponse;
+int DiskMount(ULONG32 DeviceNumber, PDISK_PARAMETERS  diskParam);
 
 int DiskUnmount(const wchar_t Letter);
 
 int PrintAllDisks();
-
+typedef struct CORE_MNT_UNMOUNT_REQUEST
+{
+	ULONG32 deviceId;
+}CoreMNTUnmountRequest;
 

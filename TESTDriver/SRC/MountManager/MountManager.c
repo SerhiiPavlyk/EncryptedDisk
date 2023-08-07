@@ -6,6 +6,7 @@ void MountManagerInit(PDRIVER_OBJECT DriverObject)
 {
 	DataOfMountManager.DriverObject = DriverObject;
 	DataOfMountManager.gMountedDiskCount = 0;
+	DataOfMountManager.amountOfMountedDisk.deviceId = 0;
 	//ExInitializeFastMutex(&DataOfMountManager.diskMapLock_);
 	DataOfMountManager.isInitializied = TRUE;
 
@@ -160,14 +161,13 @@ void MountManagerInit(PDRIVER_OBJECT DriverObject)
 NTSTATUS MountManagerCreateDevice()
 {
 	UNICODE_STRING      device_name;
-	NTSTATUS            status;
+	NTSTATUS            status = STATUS_SUCCESS;
 	PDEVICE_OBJECT      device_object;
 	PDEVICE_EXTENSION   device_extension;
 	HANDLE              thread_handle;
 	UNICODE_STRING      sddl;
 
 	ASSERT(DataOfMountManager.DriverObject != NULL);
-
 	device_name.Buffer = (PWCHAR)ExAllocatePoolWithTag(PagedPool, MAXIMUM_FILENAME_LENGTH * 2, DISK_TAG);
 
 	if (device_name.Buffer == NULL)
@@ -266,6 +266,7 @@ NTSTATUS MountManagerCreateDevice()
 	}
 
 	ZwClose(thread_handle);
+	return status;
 }
 
 //NTSTATUS MountManagerMount(PIRP Irp, PDEVICE_EXTENSION device_extension)
@@ -355,234 +356,238 @@ NTSTATUS MountManagerCreateDevice()
 
 NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
-    PDEVICE_EXTENSION               device_extension;
-    PDISK_PARAMETERS          open_file_information;
-    NTSTATUS                        status;
-    OBJECT_ATTRIBUTES               object_attributes;
-    FILE_END_OF_FILE_INFORMATION    file_eof;
-    FILE_BASIC_INFORMATION          file_basic;
-    FILE_STANDARD_INFORMATION       file_standard;
-    FILE_ALIGNMENT_INFORMATION      file_alignment;
+	PDEVICE_EXTENSION               device_extension;
+	PDISK_PARAMETERS          open_file_information;
+	NTSTATUS                        status;
+	OBJECT_ATTRIBUTES               object_attributes;
+	FILE_END_OF_FILE_INFORMATION    file_eof;
+	FILE_BASIC_INFORMATION          file_basic;
+	FILE_STANDARD_INFORMATION       file_standard;
+	FILE_ALIGNMENT_INFORMATION      file_alignment;
 
-    PAGED_CODE();
+	PAGED_CODE();
 
-    ASSERT(DeviceObject != NULL);
-    ASSERT(Irp != NULL);
+	ASSERT(DeviceObject != NULL);
+	ASSERT(Irp != NULL);
 
-    device_extension = (PDEVICE_EXTENSION)DeviceObject->DeviceExtension;
-    DbgBreakPoint();
-    open_file_information = (PDISK_PARAMETERS)Irp->AssociatedIrp.SystemBuffer;
+	device_extension = (PDEVICE_EXTENSION)DeviceObject->DeviceExtension;
+	DbgBreakPoint();
+	open_file_information = (PDISK_PARAMETERS)Irp->AssociatedIrp.SystemBuffer;
 
-    device_extension->file_name.Length = open_file_information->FileNameLength * sizeof(wchar_t);
-    device_extension->file_name.MaximumLength = device_extension->file_name.Length + 1;
-    device_extension->file_name.Buffer = ExAllocatePoolWithTag(NonPagedPool, device_extension->file_name.Length, DISK_TAG);
 
-    if (device_extension->file_name.Buffer == NULL)
-    {
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
+	RtlCopyMemory(DataOfMountManager.listOfDisks[device_extension->device_ID].FileName, open_file_information->FileName, (open_file_information->FileNameLength * sizeof(wchar_t)));
+	DataOfMountManager.listOfDisks[device_extension->device_ID].FileNameLength = open_file_information->FileNameLength;
+	DataOfMountManager.listOfDisks[device_extension->device_ID].Letter = open_file_information->Letter;
+	DataOfMountManager.listOfDisks[device_extension->device_ID].Size = open_file_information->Size;
+	device_extension->file_name.Length = open_file_information->FileNameLength * sizeof(wchar_t);
+	device_extension->file_name.MaximumLength = device_extension->file_name.Length + 1;
+	device_extension->file_name.Buffer = ExAllocatePoolWithTag(NonPagedPool, device_extension->file_name.Length, DISK_TAG);
 
-    RtlCopyMemory(
-        device_extension->file_name.Buffer,
-        open_file_information->FileName,
-        device_extension->file_name.Length
-    );
+	if (device_extension->file_name.Buffer == NULL)
+	{
+		return STATUS_INSUFFICIENT_RESOURCES;
+	}
 
-    InitializeObjectAttributes(
-        &object_attributes,
-        &device_extension->file_name,
-        OBJ_CASE_INSENSITIVE,
-        NULL,
-        NULL
-    );
+	RtlCopyMemory(
+		device_extension->file_name.Buffer,
+		open_file_information->FileName,
+		device_extension->file_name.Length
+	);
 
-    status = ZwCreateFile(
-        &device_extension->file_handle,
-        GENERIC_READ | GENERIC_WRITE,
-        &object_attributes,
-        &Irp->IoStatus,
-        NULL,
-        FILE_ATTRIBUTE_NORMAL,
-         0,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE |
-        FILE_RANDOM_ACCESS |
-        FILE_NO_INTERMEDIATE_BUFFERING |
-        FILE_SYNCHRONOUS_IO_NONALERT,
-        NULL,
-        0
-    );
+	InitializeObjectAttributes(
+		&object_attributes,
+		&device_extension->file_name,
+		OBJ_CASE_INSENSITIVE,
+		NULL,
+		NULL
+	);
 
-    if (NT_SUCCESS(status))
-    {
-        KdPrint(("FileDisk: File %.*S opened.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer));
-    }
+	status = ZwCreateFile(
+		&device_extension->file_handle,
+		GENERIC_READ | GENERIC_WRITE,
+		&object_attributes,
+		&Irp->IoStatus,
+		NULL,
+		FILE_ATTRIBUTE_NORMAL,
+		0,
+		FILE_OPEN,
+		FILE_NON_DIRECTORY_FILE |
+		FILE_RANDOM_ACCESS |
+		FILE_NO_INTERMEDIATE_BUFFERING |
+		FILE_SYNCHRONOUS_IO_NONALERT,
+		NULL,
+		0
+	);
 
-    if (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_NO_SUCH_FILE)
-    {
-        if ( open_file_information->Size.QuadPart == 0)
-        {
-            DbgPrint("FileDisk: File %.*S not found.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
-            ExFreePool(device_extension->file_name.Buffer);
+	if (NT_SUCCESS(status))
+	{
+		KdPrint(("FileDisk: File %.*S opened.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer));
+	}
 
-            Irp->IoStatus.Status = STATUS_NO_SUCH_FILE;
-            Irp->IoStatus.Information = 0;
+	if (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_NO_SUCH_FILE)
+	{
+		if (open_file_information->Size.QuadPart == 0)
+		{
+			DbgPrint("FileDisk: File %.*S not found.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
+			ExFreePool(device_extension->file_name.Buffer);
 
-            return STATUS_NO_SUCH_FILE;
-        }
-        else
-        {
-            status = ZwCreateFile(
-                &device_extension->file_handle,
-                GENERIC_READ | GENERIC_WRITE,
-                &object_attributes,
-                &Irp->IoStatus,
-                NULL,
-                FILE_ATTRIBUTE_NORMAL,
-                0,
-                FILE_OPEN_IF,
-                FILE_NON_DIRECTORY_FILE |
-                FILE_RANDOM_ACCESS |
-                FILE_NO_INTERMEDIATE_BUFFERING |
-                FILE_SYNCHRONOUS_IO_NONALERT,
-                NULL,
-                0
-            );
+			Irp->IoStatus.Status = STATUS_NO_SUCH_FILE;
+			Irp->IoStatus.Information = 0;
 
-            if (!NT_SUCCESS(status))
-            {
-                DbgPrint("FileDisk: File %.*S could not be created.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
-                ExFreePool(device_extension->file_name.Buffer);
-                return status;
-            }
+			return STATUS_NO_SUCH_FILE;
+		}
+		else
+		{
+			status = ZwCreateFile(
+				&device_extension->file_handle,
+				GENERIC_READ | GENERIC_WRITE,
+				&object_attributes,
+				&Irp->IoStatus,
+				NULL,
+				FILE_ATTRIBUTE_NORMAL,
+				0,
+				FILE_OPEN_IF,
+				FILE_NON_DIRECTORY_FILE |
+				FILE_RANDOM_ACCESS |
+				FILE_NO_INTERMEDIATE_BUFFERING |
+				FILE_SYNCHRONOUS_IO_NONALERT,
+				NULL,
+				0
+			);
 
-            if (Irp->IoStatus.Information == FILE_CREATED)
-            {
-                KdPrint(("FileDisk: File %.*S created.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer));
-                status = ZwFsControlFile(
-                    device_extension->file_handle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &Irp->IoStatus,
-                    FSCTL_SET_SPARSE,
-                    NULL,
-                    0,
-                    NULL,
-                    0
-                );
+			if (!NT_SUCCESS(status))
+			{
+				DbgPrint("FileDisk: File %.*S could not be created.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
+				ExFreePool(device_extension->file_name.Buffer);
+				return status;
+			}
 
-                if (NT_SUCCESS(status))
-                {
-                    KdPrint(("FileDisk: File attributes set to sparse.\n"));
-                }
+			if (Irp->IoStatus.Information == FILE_CREATED)
+			{
+				KdPrint(("FileDisk: File %.*S created.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer));
+				status = ZwFsControlFile(
+					device_extension->file_handle,
+					NULL,
+					NULL,
+					NULL,
+					&Irp->IoStatus,
+					FSCTL_SET_SPARSE,
+					NULL,
+					0,
+					NULL,
+					0
+				);
 
-                file_eof.EndOfFile.QuadPart = open_file_information->Size.QuadPart;
+				if (NT_SUCCESS(status))
+				{
+					KdPrint(("FileDisk: File attributes set to sparse.\n"));
+				}
 
-                status = ZwSetInformationFile(
-                    device_extension->file_handle,
-                    &Irp->IoStatus,
-                    &file_eof,
-                    sizeof(FILE_END_OF_FILE_INFORMATION),
-                    FileEndOfFileInformation
-                );
+				file_eof.EndOfFile.QuadPart = open_file_information->Size.QuadPart;
 
-                if (!NT_SUCCESS(status))
-                {
-                    DbgPrint("FileDisk: eof could not be set.\n");
-                    ExFreePool(device_extension->file_name.Buffer);
-                    ZwClose(device_extension->file_handle);
-                    return status;
-                }
-                KdPrint(("FileDisk: eof set to %I64u.\n", file_eof.EndOfFile.QuadPart));
-            }
-        }
-    }
-    else if (!NT_SUCCESS(status))
-    {
-        DbgPrint("FileDisk: File %.*S could not be opened.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
-        ExFreePool(device_extension->file_name.Buffer);
-        return status;
-    }
+				status = ZwSetInformationFile(
+					device_extension->file_handle,
+					&Irp->IoStatus,
+					&file_eof,
+					sizeof(FILE_END_OF_FILE_INFORMATION),
+					FileEndOfFileInformation
+				);
 
-    status = ZwQueryInformationFile(
-        device_extension->file_handle,
-        &Irp->IoStatus,
-        &file_basic,
-        sizeof(FILE_BASIC_INFORMATION),
-        FileBasicInformation
-    );
+				if (!NT_SUCCESS(status))
+				{
+					DbgPrint("FileDisk: eof could not be set.\n");
+					ExFreePool(device_extension->file_name.Buffer);
+					ZwClose(device_extension->file_handle);
+					return status;
+				}
+				KdPrint(("FileDisk: eof set to %I64u.\n", file_eof.EndOfFile.QuadPart));
+			}
+		}
+	}
+	else if (!NT_SUCCESS(status))
+	{
+		DbgPrint("FileDisk: File %.*S could not be opened.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
+		ExFreePool(device_extension->file_name.Buffer);
+		return status;
+	}
 
-    if (!NT_SUCCESS(status))
-    {
-        ExFreePool(device_extension->file_name.Buffer);
-        ZwClose(device_extension->file_handle);
-        return status;
-    }
+	status = ZwQueryInformationFile(
+		device_extension->file_handle,
+		&Irp->IoStatus,
+		&file_basic,
+		sizeof(FILE_BASIC_INFORMATION),
+		FileBasicInformation
+	);
 
-    //
-    // The NT cache manager can deadlock if a filesystem that is using the cache
-    // manager is used in a virtual disk that stores its file on a filesystem
-    // that is also using the cache manager, this is why we open the file with
-    // FILE_NO_INTERMEDIATE_BUFFERING above, however if the file is compressed
-    // or encrypted NT will not honor this request and cache it anyway since it
-    // need to store the decompressed/unencrypted data somewhere, therefor we put
-    // an extra check here and don't alow disk images to be compressed/encrypted.
-    //
-    if (file_basic.FileAttributes & (FILE_ATTRIBUTE_COMPRESSED | FILE_ATTRIBUTE_ENCRYPTED))
-    {
-        DbgPrint("FileDisk: Warning: File is compressed or encrypted. File attributes: %#x.\n", file_basic.FileAttributes);
-        /*
-                ExFreePool(device_extension->file_name.Buffer);
-                ZwClose(device_extension->file_handle);
-                Irp->IoStatus.Status = STATUS_ACCESS_DENIED;
-                Irp->IoStatus.Information = 0;
-                return STATUS_ACCESS_DENIED;
-        */
-    }
+	if (!NT_SUCCESS(status))
+	{
+		ExFreePool(device_extension->file_name.Buffer);
+		ZwClose(device_extension->file_handle);
+		return status;
+	}
 
-    status = ZwQueryInformationFile(
-        device_extension->file_handle,
-        &Irp->IoStatus,
-        &file_standard,
-        sizeof(FILE_STANDARD_INFORMATION),
-        FileStandardInformation
-    );
+	//
+	// The NT cache manager can deadlock if a filesystem that is using the cache
+	// manager is used in a virtual disk that stores its file on a filesystem
+	// that is also using the cache manager, this is why we open the file with
+	// FILE_NO_INTERMEDIATE_BUFFERING above, however if the file is compressed
+	// or encrypted NT will not honor this request and cache it anyway since it
+	// need to store the decompressed/unencrypted data somewhere, therefor we put
+	// an extra check here and don't alow disk images to be compressed/encrypted.
+	//
+	if (file_basic.FileAttributes & (FILE_ATTRIBUTE_COMPRESSED | FILE_ATTRIBUTE_ENCRYPTED))
+	{
+		DbgPrint("FileDisk: Warning: File is compressed or encrypted. File attributes: %#x.\n", file_basic.FileAttributes);
+		/*
+				ExFreePool(device_extension->file_name.Buffer);
+				ZwClose(device_extension->file_handle);
+				Irp->IoStatus.Status = STATUS_ACCESS_DENIED;
+				Irp->IoStatus.Information = 0;
+				return STATUS_ACCESS_DENIED;
+		*/
+	}
 
-    if (!NT_SUCCESS(status))
-    {
-        ExFreePool(device_extension->file_name.Buffer);
-        ZwClose(device_extension->file_handle);
-        return status;
-    }
+	status = ZwQueryInformationFile(
+		device_extension->file_handle,
+		&Irp->IoStatus,
+		&file_standard,
+		sizeof(FILE_STANDARD_INFORMATION),
+		FileStandardInformation
+	);
 
-    device_extension->file_size.QuadPart = file_standard.EndOfFile.QuadPart;
+	if (!NT_SUCCESS(status))
+	{
+		ExFreePool(device_extension->file_name.Buffer);
+		ZwClose(device_extension->file_handle);
+		return status;
+	}
 
-    status = ZwQueryInformationFile(
-        device_extension->file_handle,
-        &Irp->IoStatus,
-        &file_alignment,
-        sizeof(FILE_ALIGNMENT_INFORMATION),
-        FileAlignmentInformation
-    );
+	device_extension->file_size.QuadPart = file_standard.EndOfFile.QuadPart;
 
-    if (!NT_SUCCESS(status))
-    {
-        ExFreePool(device_extension->file_name.Buffer);
-        ZwClose(device_extension->file_handle);
-        return status;
-    }
+	status = ZwQueryInformationFile(
+		device_extension->file_handle,
+		&Irp->IoStatus,
+		&file_alignment,
+		sizeof(FILE_ALIGNMENT_INFORMATION),
+		FileAlignmentInformation
+	);
 
-    DeviceObject->AlignmentRequirement = file_alignment.AlignmentRequirement;
+	if (!NT_SUCCESS(status))
+	{
+		ExFreePool(device_extension->file_name.Buffer);
+		ZwClose(device_extension->file_handle);
+		return status;
+	}
 
-        DeviceObject->Characteristics &= ~FILE_READ_ONLY_DEVICE;
+	DeviceObject->AlignmentRequirement = file_alignment.AlignmentRequirement;
 
-    device_extension->media_in_device = TRUE;
+	DeviceObject->Characteristics &= ~FILE_READ_ONLY_DEVICE;
 
-    Irp->IoStatus.Status = STATUS_SUCCESS;
-    Irp->IoStatus.Information = 0;
+	device_extension->media_in_device = TRUE;
+	Irp->IoStatus.Status = STATUS_SUCCESS;
+	Irp->IoStatus.Information = 0;
 
-    return STATUS_SUCCESS;
+	return STATUS_SUCCESS;
 }
 
 NTSTATUS FileDiskCloseFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)

@@ -151,8 +151,8 @@
 
 void xorEncrypt(PUCHAR message, ULONG size, const char key[])
 {
-	int keyLen = strlen(key);
-	int i;
+	ULONG keyLen = strlen(key);
+	ULONG i;
 
 	for (i = 0; i < size; ++i)
 	{

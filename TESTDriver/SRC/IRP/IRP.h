@@ -1,5 +1,5 @@
 #pragma once
-#include "ProtectedVector/ProtectedVector.h"
+#include <main/pch.h>
 
 
 
@@ -22,20 +22,20 @@ typedef struct IrpParametrs
 	char* buffer;
 }IrpParam;
 
-typedef struct MountedDisk
-{
-	IrpStruct irpDispatcher;
-	PIRP pIrp;
-	UNICODE_STRING FileName;
-	UNICODE_STRING DeviceName;
-
-	HANDLE fileHandle;
-	LARGE_INTEGER               fileSize;
-	PUNICODE_STRING password;
-	KEVENT irpQueueNotEmpty_;
-	KEVENT stopEvent_;
-	Vector irpQueue_;
-} MOUNTEDDISK, * PMOUNTEDDISK;
+//typedef struct MountedDisk
+//{
+//	IrpStruct irpDispatcher;
+//	PIRP pIrp;
+//	UNICODE_STRING FileName;
+//	UNICODE_STRING DeviceName;
+//
+//	HANDLE fileHandle;
+//	LARGE_INTEGER               fileSize;
+//	PUNICODE_STRING password;
+//	KEVENT irpQueueNotEmpty_;
+//	KEVENT stopEvent_;
+//	Vector irpQueue_;
+//} MOUNTEDDISK, * PMOUNTEDDISK;
 
 IrpStruct IrpData;
 

@@ -70,11 +70,81 @@ FileDiskDeviceControl(
 {
 	PDEVICE_EXTENSION   device_extension;
 	PIO_STACK_LOCATION  io_stack;
-	NTSTATUS            status;
+	NTSTATUS            status = STATUS_SUCCESS;
 
 	device_extension = (PDEVICE_EXTENSION)DeviceObject->DeviceExtension;
 
-	io_stack = IoGetCurrentIrpStackLocation(Irp);
+	io_stack = IoGetCurrentIrpStackLocation(Irp);	
+	if ((DeviceObject == gDeviceObject)
+		&& (io_stack->Parameters.DeviceIoControl.IoControlCode != IOCTL_FILE_DISK_GET_ALL_DISK)
+		&& (io_stack->Parameters.DeviceIoControl.IoControlCode != IOCTL_FILE_DISK_GET_AMOUNT_OF_MOUNTED_DISKS))
+	{
+		Irp->IoStatus.Status = STATUS_SUCCESS;
+		Irp->IoStatus.Information = 0;
+
+		IoCompleteRequest(Irp, IO_NO_INCREMENT);
+		return STATUS_SUCCESS;
+	}
+
+	//else if ((DeviceObject == gDeviceObject) && (io_stack->Parameters.DeviceIoControl.IoControlCode == IOCTL_FILE_DISK_GET_ALL_DISK))
+	//{
+	//	status = MountManagerCreateDevice();
+	//	if (status != STATUS_SUCCESS)
+	//	{
+	//		DbgPrintEx(0, 0, "MountManagerCreateDevice - fail\n");
+	//	}
+	//	Irp->IoStatus.Status = STATUS_SUCCESS;
+	//	Irp->IoStatus.Information = 0;
+	//	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	//	return status;
+	//}
+
+	else if (io_stack->Parameters.DeviceIoControl.IoControlCode == IOCTL_FILE_DISK_GET_AMOUNT_OF_MOUNTED_DISKS)
+	{
+		CoreMNTUnmountRequest* response = (CoreMNTUnmountRequest*)Irp->AssociatedIrp.SystemBuffer;
+		response->deviceId = DataOfMountManager.amountOfMountedDisk.deviceId;
+		Irp->IoStatus.Status = STATUS_SUCCESS;
+		Irp->IoStatus.Information = sizeof(CoreMNTUnmountRequest);
+		return STATUS_SUCCESS;
+	}
+	else if (io_stack->Parameters.DeviceIoControl.IoControlCode == IOCTL_FILE_DISK_GET_ALL_DISK)
+	{
+		DbgBreakPoint();
+		PIO_STACK_LOCATION irpStack;
+		// Get the current I/O stack location
+		irpStack = IoGetCurrentIrpStackLocation(Irp);
+		USHORT totalLenOfNames = 0;
+		PVOID buffer;
+		for (size_t i = 0; i < MAX_DISK_AMOUNT; i++)
+		{
+			totalLenOfNames += DataOfMountManager.listOfDisks[i].FileNameLength;
+		}
+		ULONG outsize = MAX_DISK_AMOUNT *(sizeof(Response)  - sizeof(wchar_t)) + totalLenOfNames;
+		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength < outsize)
+		{
+			status = STATUS_BUFFER_TOO_SMALL;
+			Irp->IoStatus.Information = 0;
+			return status;
+		}
+		// Get the input/output buffers and their lengths
+		buffer = Irp->AssociatedIrp.SystemBuffer;
+		Response * response = (Response*) buffer;
+
+		// Copy the response data into the output buffer
+		for (size_t i = 0; i < MAX_DISK_AMOUNT; i++)
+		{
+			RtlCopyMemory(response[i].FileName, DataOfMountManager.listOfDisks[i].FileName, DataOfMountManager.listOfDisks[i].FileNameLength * sizeof(wchar_t));
+			response[i].FileNameLength = DataOfMountManager.listOfDisks[i].FileNameLength;
+			response[i].Letter = DataOfMountManager.listOfDisks[i].Letter;
+			response[i].Size = DataOfMountManager.listOfDisks[i].Size;
+		}
+
+
+		Irp->IoStatus.Status = STATUS_SUCCESS;
+		Irp->IoStatus.Information = outsize;
+		return STATUS_SUCCESS;
+	}
+
 
 	if (!device_extension->media_in_device &&
 		io_stack->Parameters.DeviceIoControl.IoControlCode !=
@@ -159,6 +229,7 @@ FileDiskDeviceControl(
 			FALSE
 		);
 
+		DataOfMountManager.amountOfMountedDisk.deviceId++;
 		status = STATUS_PENDING;
 
 		break;
@@ -181,7 +252,7 @@ FileDiskDeviceControl(
 		);
 
 		status = STATUS_PENDING;
-
+		DataOfMountManager.amountOfMountedDisk.deviceId--;
 		break;
 	}
 
@@ -348,7 +419,7 @@ FileDiskDeviceControl(
 
 	case IOCTL_DISK_IS_WRITABLE:
 	{
-			status = STATUS_SUCCESS;
+		status = STATUS_SUCCESS;
 		Irp->IoStatus.Information = 0;
 		break;
 	}
@@ -680,7 +751,7 @@ FileDiskDeviceControl(
 	}
 
 	return status;
-}
+	}
 
 
 NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
@@ -715,14 +786,12 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	DriverObject->MajorFunction[IRP_MJ_READ] = FileDiskReadWrite;
 	DriverObject->MajorFunction[IRP_MJ_WRITE] = FileDiskReadWrite;
 	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = FileDiskDeviceControl;
-
 	MountManagerInit(DriverObject);
 
-	MountManagerCreateDevice();
-	MountManagerCreateDevice();
-	MountManagerCreateDevice();
-	MountManagerCreateDevice();
-	MountManagerCreateDevice();
+	for (size_t i = 0; i < MAX_DISK_AMOUNT; i++)
+	{
+		MountManagerCreateDevice();
+	}
 
 	return status;
 

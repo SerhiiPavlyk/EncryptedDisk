@@ -54,10 +54,12 @@ ZwAdjustPrivilegesToken(
 #define CORE_MNT_UNMOUNT_IOCTL \
     CTL_CODE(CORE_MNT_DISPATCHER, 0x802, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
+
+
 #define IOCTL_MOUNTDEV_UNIQUE_ID_CHANGE_NOTIFY    CTL_CODE(MOUNTDEVCONTROLTYPE, 1, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define 	TOC_DATA_TRACK   0x04
 
-#define MAX_SIZE 25
+#define MAX_DISK_AMOUNT 20
 
 typedef struct CORE_MNT_MOUNT_REQUEST
 {
@@ -117,6 +119,11 @@ typedef enum _DiskOperationType
 #define IOCTL_FILE_DISK_CREATE_DISK  \
 	CTL_CODE(FILE_DEVICE_DISK, 0x807, METHOD_BUFFERED, FILE_READ_ACCESS)
 
+#define IOCTL_FILE_DISK_GET_ALL_DISK  \
+	CTL_CODE(FILE_DEVICE_DISK, 0x808, METHOD_BUFFERED, FILE_READ_ACCESS)
+
+#define IOCTL_FILE_DISK_GET_AMOUNT_OF_MOUNTED_DISKS  \
+	CTL_CODE(FILE_DEVICE_DISK, 0x809, METHOD_BUFFERED, FILE_READ_ACCESS)
 
 typedef struct _DEVICE_EXTENSION {
 	UNICODE_STRING              device_name;
@@ -139,4 +146,11 @@ typedef struct DiskParam {
 	wchar_t				Letter;
 	USHORT				FileNameLength;
 	wchar_t				FileName[MAX_PATH];
+
 } DISK_PARAMETERS, * PDISK_PARAMETERS;
+typedef struct DiskParamR {
+	LARGE_INTEGER		Size;
+	wchar_t				Letter;
+	USHORT				FileNameLength;
+	wchar_t				FileName[MAX_PATH];
+} Response, * PResponse;

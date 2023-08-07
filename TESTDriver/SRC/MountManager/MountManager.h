@@ -1,14 +1,16 @@
 #pragma once
 
-#include "MountedDisk/MountedDisk.h"
+#include "IRP/IRP.h"
+
+
 typedef struct MManager
 {
 	UINT32 gMountedDiskCount;   //счетчик дисков, глобальная переменная
 	FAST_MUTEX diskMapLock_;
 	BOOL isInitializied;
 	PDRIVER_OBJECT DriverObject;
-
-
+	DISK_PARAMETERS listOfDisks[MAX_DISK_AMOUNT];
+	CoreMNTUnmountRequest amountOfMountedDisk;
 } MountManager, * PMountManager;
 
 
