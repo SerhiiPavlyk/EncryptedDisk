@@ -1,16 +1,12 @@
 #pragma once
-
 #include "IRP/IRP.h"
-
 
 typedef struct MManager
 {
-	UINT32 gMountedDiskCount;   //счетчик дисков, глобальная переменная
-	FAST_MUTEX diskMapLock_;
-	BOOL isInitializied;
+	UINT32 gMountedDiskCount;
 	PDRIVER_OBJECT DriverObject;
-	DISK_PARAMETERS listOfDisks[MAX_DISK_AMOUNT];
-	CoreMNTUnmountRequest amountOfMountedDisk;
+	DISK_PARAMETERS listOfDisks[MAX_DISK];
+	MountDisksAmount amountOfMountedDisk;
 } MountManager, * PMountManager;
 
 
@@ -18,14 +14,10 @@ MountManager DataOfMountManager;
 
 VOID MountManagerInit(PDRIVER_OBJECT DriverObject);
 
-//NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp);
-//
-//int Mount(UINT32 totalLength, const wchar_t* FileName);
-//
-//VOID Unmount(UINT32 deviceId);
-//
-//VOID MountManagerRequestExchange(UINT32 devID, UINT32 lastType, UINT32 lastStatus,
-//	UINT32 lastSize, char* buf, UINT32* type, UINT32* length, UINT32* offset);
-
-//NTSTATUS MountManagerMount(PIRP Irp, PDEVICE_EXTENSION device_extension);
 NTSTATUS MountManagerCreateDevice();
+
+NTSTATUS FileDiskCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
+
+NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
+
+NTSTATUS FileDiskCloseFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);

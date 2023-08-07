@@ -1,162 +1,24 @@
 #include "main/pch.h"
 #include "MountManager/MountManager.h"
 
-
 void MountManagerInit(PDRIVER_OBJECT DriverObject)
 {
 	DataOfMountManager.DriverObject = DriverObject;
 	DataOfMountManager.gMountedDiskCount = 0;
-	DataOfMountManager.amountOfMountedDisk.deviceId = 0;
-	//ExInitializeFastMutex(&DataOfMountManager.diskMapLock_);
-	DataOfMountManager.isInitializied = TRUE;
-
+	DataOfMountManager.amountOfMountedDisk.amount = 0;
 }
 
-//NTSTATUS MountManagerDispatchIrp(UINT32 devId, PIRP irp)
-//{
-//	PMOUNTEDDISK disk;
-//	ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-//
-//	for (UINT32 i = 0; i < DataOfMountManager.gMountedDiskCount; i++)
-//	{
-//		if (devId == MountDiskList[i].irpDispatcher.devId_.deviceId)
-//			devId = i;
-//
-//		/*if (devId == DataOfMountManager.gMountedDiskCount)
-//		{
-//
-//			irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
-//			IoCompleteRequest(irp, IO_NO_INCREMENT);
-//			return STATUS_DEVICE_NOT_READY;
-//		}*/
-//	}
-//	disk = MountDiskList + devId;
-//	ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-//	NTSTATUS status = MountedDiskDispatchIrp(irp, disk);
-//
-//	return status;
-//
-//}
-//
-//int Mount(UINT32 totalLength, const wchar_t* FileName)
-//{
-//
-//	UINT32 devId = 0;
-//	{
-//		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-//		if (DataOfMountManager.gMountedDiskCount < MAX_SIZE - 2)
-//			devId = DataOfMountManager.gMountedDiskCount++;
-//		else
-//			DbgPrintEx(0, 0, "FUNCTION - device ID already exist\n");
-//		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-//	}
-//
-//	PMOUNTEDDISK disk = (PMOUNTEDDISK)ExAllocatePoolWithTag(NonPagedPool, sizeof(MOUNTEDDISK), 'MYVC');
-//	if (disk == NULL)
-//	{
-//		DbgPrintEx(0, 0, "Failed to mount disk\n");
-//		return -1;
-//	}
-//	size_t fileNameSize = (wcslen(FileName) + 1) * sizeof(wchar_t);
-//
-//	// Allocate memory for Mdisk->FileName.Buffer
-//	disk->FileName.Buffer = ExAllocatePool(PagedPool, fileNameSize);
-//	if (disk->FileName.Buffer == NULL)
-//	{
-//		DbgPrintEx(0, 0, "Failed to allocate memory for Mdisk->FileName.");
-//		return STATUS_INSUFFICIENT_RESOURCES;
-//	}
-//
-//	// Copy the contents of FileName into Mdisk->FileName.Buffer
-//	disk->FileName.Length = (USHORT)(fileNameSize - sizeof(wchar_t)); // Exclude null terminator
-//	disk->FileName.MaximumLength = (USHORT)fileNameSize; // Include null terminator
-//	wcscpy_s(disk->FileName.Buffer, disk->FileName.MaximumLength / sizeof(wchar_t), FileName);
-//	//RtlInitUnicodeString(&disk->FileName, FileName);
-//
-//	InitMountDisk(DataOfMountManager.DriverObject, devId, totalLength, disk);
-//	MDCreateDisk(disk, disk->pIrp);
-//	{
-//		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-//		int i = devId;
-//
-//		if (i <= MAX_SIZE - 1)
-//		{
-//			MountDiskList[i] = *disk;
-//			disk->irpDispatcher.devId_.deviceId = devId;
-//			DbgPrintEx(0, 0, "MountedDisk data successfully ADDED in array!\n");
-//		}
-//		else
-//		{
-//			DbgPrintEx(0, 0, "VirtDiskList is full!\n");
-//			ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-//			ExFreePoolWithTag(disk, 'MYVC');
-//			return -1;
-//		}
-//
-//		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-//	}
-//
-//	ExFreePoolWithTag(disk, 'MYVC');
-//	return devId;
-//}
-//
-//VOID Unmount(UINT32 deviceId)			//ввиду того, что буква Тома выбирается в любом удобном порядке
-//{
-//
-//	ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-//	if (deviceId < DataOfMountManager.gMountedDiskCount - 1)
-//	{
-//		DesctructorMountDisk(&MountDiskList[deviceId]);
-//		for (UINT32 i = deviceId; i < DataOfMountManager.gMountedDiskCount - 1; ++i)
-//			MountDiskList[deviceId] = MountDiskList[deviceId + 1];
-//
-//		DataOfMountManager.gMountedDiskCount--;
-//		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-//		DbgPrintEx(0, 0, "Disk successfully deleted!\n");
-//	}
-//	else if (deviceId == DataOfMountManager.gMountedDiskCount - 1)
-//	{
-//		DataOfMountManager.gMountedDiskCount--;				//просто уменьшаем число созданных дисков, чтобы
-//									// 1. при показе всех дисков последний не показывался
-//									// 2. при создании нового диска, данные перепишутся поверх последнего диска, который "удалили"
-//									// P.S. возможно это не лучший вариант :)
-//		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-//		DbgPrintEx(0, 0, "Disk successfully deleted!\n");
-//	}
-//	else
-//	{
-//		DbgPrintEx(0, 0, "Invalid parameter - disk NOT FOUND");
-//		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-//	}
-//}
-//
-//
-//VOID MountManagerRequestExchange(UINT32 devID, UINT32 lastType, UINT32 lastStatus, UINT32 lastSize, char* buf,
-//	UINT32* type, UINT32* length, UINT32* offset)
-//{
-//	PMOUNTEDDISK disk = NULL;
-//	{
-//		ExAcquireFastMutex(&DataOfMountManager.diskMapLock_);
-//		for (UINT32 i = 0; i < DataOfMountManager.gMountedDiskCount; ++i)
-//		{
-//			if (devID == MountDiskList[i].irpDispatcher.devId_.deviceId)
-//			{
-//				//DbgPrintEx(0, 0, "RequestExchange() - disk FOUND\n");
-//				disk = &MountDiskList[i];
-//				break;
-//			}
-//		}
-//		ExReleaseFastMutex(&DataOfMountManager.diskMapLock_);
-//	}
-//	if (disk == NULL)
-//		DbgPrintEx(0, 0, "RequestExchange() - Disk NOT FOUND\n");
-//
-//	MountedDiskRequestExchange(lastType, lastStatus, lastSize, buf,
-//		type, length, offset, disk);
-//}
+NTSTATUS FileDiskCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
+{
+	UNREFERENCED_PARAMETER(DeviceObject);
 
+	Irp->IoStatus.Status = STATUS_SUCCESS;
+	Irp->IoStatus.Information = FILE_OPENED;
 
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 
+	return STATUS_SUCCESS;
+}
 
 NTSTATUS MountManagerCreateDevice()
 {
@@ -168,6 +30,7 @@ NTSTATUS MountManagerCreateDevice()
 	UNICODE_STRING      sddl;
 
 	ASSERT(DataOfMountManager.DriverObject != NULL);
+
 	device_name.Buffer = (PWCHAR)ExAllocatePoolWithTag(PagedPool, MAXIMUM_FILENAME_LENGTH * 2, DISK_TAG);
 
 	if (device_name.Buffer == NULL)
@@ -212,11 +75,7 @@ NTSTATUS MountManagerCreateDevice()
 
 	KeInitializeSpinLock(&device_extension->list_lock);
 
-	KeInitializeEvent(
-		&device_extension->request_event,
-		SynchronizationEvent,
-		FALSE
-	);
+	KeInitializeEvent(&device_extension->request_event, SynchronizationEvent, FALSE);
 
 	device_extension->terminate_thread = FALSE;
 
@@ -252,11 +111,7 @@ NTSTATUS MountManagerCreateDevice()
 
 		device_extension->terminate_thread = TRUE;
 
-		KeSetEvent(
-			&device_extension->request_event,
-			(KPRIORITY)0,
-			FALSE
-		);
+		KeSetEvent(&device_extension->request_event, (KPRIORITY)0, FALSE);
 
 		IoDeleteDevice(device_object);
 
@@ -269,95 +124,11 @@ NTSTATUS MountManagerCreateDevice()
 	return status;
 }
 
-//NTSTATUS MountManagerMount(PIRP Irp, PDEVICE_EXTENSION device_extension)
-//{
-//	NTSTATUS status = STATUS_SUCCESS;
-//	PVOID buffer = Irp->AssociatedIrp.SystemBuffer;
-//	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
-//	ULONG outputBufferLength = ioStack->Parameters.DeviceIoControl.OutputBufferLength;
-//	ULONG inputBufferLength = ioStack->Parameters.DeviceIoControl.InputBufferLength;
-//
-//	SECURITY_QUALITY_OF_SERVICE security_quality_of_service;
-//
-//	if (device_extension->media_in_device)
-//	{
-//		DbgPrintEx(0, 0, "FileDisk: IOCTL_FILE_DISK_OPEN_FILE: Media already opened.\n");
-//
-//		status = STATUS_INVALID_DEVICE_REQUEST;
-//		Irp->IoStatus.Information = 0;
-//		return STATUS_NO_MEDIA_IN_DEVICE;
-//	}
-//
-//	if (inputBufferLength < sizeof(DISK_PARAMETERS))
-//	{
-//		status = STATUS_INVALID_PARAMETER;
-//		Irp->IoStatus.Information = 0;
-//		return STATUS_UNSUCCESSFUL;
-//	}
-//
-//	if (inputBufferLength < sizeof(DISK_PARAMETERS) +
-//		((PDISK_PARAMETERS)Irp->AssociatedIrp.SystemBuffer)->FileNameLength -
-//		sizeof(UCHAR))
-//	{
-//		status = STATUS_INVALID_PARAMETER;
-//		Irp->IoStatus.Information = 0;
-//		return STATUS_UNSUCCESSFUL;
-//	}
-//
-//	if (device_extension->security_client_context != NULL)
-//	{
-//		SeDeleteClientSecurity(device_extension->security_client_context);
-//	}
-//	else
-//	{
-//		device_extension->security_client_context =
-//			ExAllocatePoolWithTag(NonPagedPool, sizeof(SECURITY_CLIENT_CONTEXT), DISK_TAG);
-//	}
-//
-//	RtlZeroMemory(&security_quality_of_service, sizeof(SECURITY_QUALITY_OF_SERVICE));
-//
-//	security_quality_of_service.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
-//	security_quality_of_service.ImpersonationLevel = SecurityImpersonation;
-//	security_quality_of_service.ContextTrackingMode = SECURITY_STATIC_TRACKING;
-//	security_quality_of_service.EffectiveOnly = FALSE;
-//
-//	if ((SeCreateClientSecurity(
-//		PsGetCurrentThread(),
-//		&security_quality_of_service,
-//		FALSE,
-//		device_extension->security_client_context
-//	)) != STATUS_SUCCESS)
-//	{
-//		DbgPrintEx(0, 0, ("SeCreateClientSecurity. Error\n"));
-//		return STATUS_UNSUCCESSFUL;
-//	}
-//
-//	IoMarkIrpPending(Irp);
-//
-//	ExInterlockedInsertTailList(
-//		&device_extension->list_head,
-//		&Irp->Tail.Overlay.ListEntry,
-//		&device_extension->list_lock
-//	);
-//
-//	KeSetEvent(
-//		&device_extension->request_event,
-//		(KPRIORITY)0,
-//		FALSE
-//	);
-//
-//	status = STATUS_PENDING;
-//
-//	return status;
-//}
-//
-
-
 
 NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
 	PDEVICE_EXTENSION               device_extension;
-	PDISK_PARAMETERS          open_file_information;
+	PDISK_PARAMETERS                diskParam;
 	NTSTATUS                        status;
 	OBJECT_ATTRIBUTES               object_attributes;
 	FILE_END_OF_FILE_INFORMATION    file_eof;
@@ -365,33 +136,51 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	FILE_STANDARD_INFORMATION       file_standard;
 	FILE_ALIGNMENT_INFORMATION      file_alignment;
 
-	PAGED_CODE();
-
 	ASSERT(DeviceObject != NULL);
 	ASSERT(Irp != NULL);
 
 	device_extension = (PDEVICE_EXTENSION)DeviceObject->DeviceExtension;
-	DbgBreakPoint();
-	open_file_information = (PDISK_PARAMETERS)Irp->AssociatedIrp.SystemBuffer;
+	diskParam = (PDISK_PARAMETERS)Irp->AssociatedIrp.SystemBuffer;
 
+	RtlCopyMemory(DataOfMountManager.listOfDisks[device_extension->device_ID].FileName,
+		diskParam->FileName,
+		(diskParam->FileNameLength * sizeof(wchar_t)
+			));
 
-	RtlCopyMemory(DataOfMountManager.listOfDisks[device_extension->device_ID].FileName, open_file_information->FileName, (open_file_information->FileNameLength * sizeof(wchar_t)));
-	DataOfMountManager.listOfDisks[device_extension->device_ID].FileNameLength = open_file_information->FileNameLength;
-	DataOfMountManager.listOfDisks[device_extension->device_ID].Letter = open_file_information->Letter;
-	DataOfMountManager.listOfDisks[device_extension->device_ID].Size = open_file_information->Size;
-	device_extension->file_name.Length = open_file_information->FileNameLength * sizeof(wchar_t);
+	DataOfMountManager.listOfDisks[device_extension->device_ID].FileNameLength = diskParam->FileNameLength;
+	DataOfMountManager.listOfDisks[device_extension->device_ID].Letter = diskParam->Letter;
+	DataOfMountManager.listOfDisks[device_extension->device_ID].Size = diskParam->Size;
+
+	device_extension->file_name.Length = diskParam->FileNameLength * sizeof(wchar_t);
 	device_extension->file_name.MaximumLength = device_extension->file_name.Length + 1;
 	device_extension->file_name.Buffer = ExAllocatePoolWithTag(NonPagedPool, device_extension->file_name.Length, DISK_TAG);
 
 	if (device_extension->file_name.Buffer == NULL)
 	{
+		ExFreePool(device_extension->file_name.Buffer);
+		return STATUS_INSUFFICIENT_RESOURCES;
+	}
+
+	RtlCopyMemory(device_extension->file_name.Buffer,
+		diskParam->FileName,
+		device_extension->file_name.Length
+	);
+
+	device_extension->password.Length = diskParam->PasswordLength * sizeof(wchar_t);
+	device_extension->password.MaximumLength = device_extension->password.Length + 1;
+	device_extension->password.Buffer = ExAllocatePoolWithTag(NonPagedPool, device_extension->password.Length, DISK_TAG);
+
+	if (device_extension->password.Buffer == NULL)
+	{
+		ExFreePool(device_extension->file_name.Buffer);
+		ExFreePool(device_extension->password.Buffer);
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
 
 	RtlCopyMemory(
-		device_extension->file_name.Buffer,
-		open_file_information->FileName,
-		device_extension->file_name.Length
+		device_extension->password.Buffer,
+		diskParam->password,
+		device_extension->password.Length
 	);
 
 	InitializeObjectAttributes(
@@ -426,10 +215,11 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 
 	if (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_NO_SUCH_FILE)
 	{
-		if (open_file_information->Size.QuadPart == 0)
+		if (diskParam->Size.QuadPart == 0)
 		{
 			DbgPrint("FileDisk: File %.*S not found.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
 			ExFreePool(device_extension->file_name.Buffer);
+			ExFreePool(device_extension->password.Buffer);
 
 			Irp->IoStatus.Status = STATUS_NO_SUCH_FILE;
 			Irp->IoStatus.Information = 0;
@@ -459,6 +249,8 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 			{
 				DbgPrint("FileDisk: File %.*S could not be created.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
 				ExFreePool(device_extension->file_name.Buffer);
+				ExFreePool(device_extension->password.Buffer);
+
 				return status;
 			}
 
@@ -483,7 +275,7 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 					KdPrint(("FileDisk: File attributes set to sparse.\n"));
 				}
 
-				file_eof.EndOfFile.QuadPart = open_file_information->Size.QuadPart;
+				file_eof.EndOfFile.QuadPart = diskParam->Size.QuadPart;
 
 				status = ZwSetInformationFile(
 					device_extension->file_handle,
@@ -497,7 +289,10 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 				{
 					DbgPrint("FileDisk: eof could not be set.\n");
 					ExFreePool(device_extension->file_name.Buffer);
+					ExFreePool(device_extension->password.Buffer);
+
 					ZwClose(device_extension->file_handle);
+
 					return status;
 				}
 				KdPrint(("FileDisk: eof set to %I64u.\n", file_eof.EndOfFile.QuadPart));
@@ -508,6 +303,8 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	{
 		DbgPrint("FileDisk: File %.*S could not be opened.\n", device_extension->file_name.Length / 2, device_extension->file_name.Buffer);
 		ExFreePool(device_extension->file_name.Buffer);
+		ExFreePool(device_extension->password.Buffer);
+
 		return status;
 	}
 
@@ -522,29 +319,16 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	if (!NT_SUCCESS(status))
 	{
 		ExFreePool(device_extension->file_name.Buffer);
+		ExFreePool(device_extension->password.Buffer);
+
 		ZwClose(device_extension->file_handle);
+
 		return status;
 	}
 
-	//
-	// The NT cache manager can deadlock if a filesystem that is using the cache
-	// manager is used in a virtual disk that stores its file on a filesystem
-	// that is also using the cache manager, this is why we open the file with
-	// FILE_NO_INTERMEDIATE_BUFFERING above, however if the file is compressed
-	// or encrypted NT will not honor this request and cache it anyway since it
-	// need to store the decompressed/unencrypted data somewhere, therefor we put
-	// an extra check here and don't alow disk images to be compressed/encrypted.
-	//
 	if (file_basic.FileAttributes & (FILE_ATTRIBUTE_COMPRESSED | FILE_ATTRIBUTE_ENCRYPTED))
 	{
 		DbgPrint("FileDisk: Warning: File is compressed or encrypted. File attributes: %#x.\n", file_basic.FileAttributes);
-		/*
-				ExFreePool(device_extension->file_name.Buffer);
-				ZwClose(device_extension->file_handle);
-				Irp->IoStatus.Status = STATUS_ACCESS_DENIED;
-				Irp->IoStatus.Information = 0;
-				return STATUS_ACCESS_DENIED;
-		*/
 	}
 
 	status = ZwQueryInformationFile(
@@ -558,7 +342,10 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	if (!NT_SUCCESS(status))
 	{
 		ExFreePool(device_extension->file_name.Buffer);
+		ExFreePool(device_extension->password.Buffer);
+
 		ZwClose(device_extension->file_handle);
+
 		return status;
 	}
 
@@ -575,7 +362,10 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	if (!NT_SUCCESS(status))
 	{
 		ExFreePool(device_extension->file_name.Buffer);
+		ExFreePool(device_extension->password.Buffer);
+
 		ZwClose(device_extension->file_handle);
+
 		return status;
 	}
 
@@ -584,6 +374,7 @@ NTSTATUS FileDiskOpenFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	DeviceObject->Characteristics &= ~FILE_READ_ONLY_DEVICE;
 
 	device_extension->media_in_device = TRUE;
+
 	Irp->IoStatus.Status = STATUS_SUCCESS;
 	Irp->IoStatus.Information = 0;
 
@@ -595,23 +386,22 @@ NTSTATUS FileDiskCloseFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
 	PDEVICE_EXTENSION device_extension;
 
-	PAGED_CODE();
-
 	ASSERT(DeviceObject != NULL);
 	ASSERT(Irp != NULL);
 
 	device_extension = (PDEVICE_EXTENSION)DeviceObject->DeviceExtension;
 
-
+	ExFreePool(device_extension->file_name.Buffer);
+	ExFreePool(device_extension->password.Buffer);
 
 	ZwClose(device_extension->file_handle);
-	DataOfMountManager.amountOfMountedDisk.deviceId--;
-	ExFreePool(DataOfMountManager.listOfDisks[device_extension->device_ID].FileName);
+
+	device_extension->media_in_device = FALSE;
+
 	for (UINT32 i = device_extension->device_ID; i < DataOfMountManager.gMountedDiskCount; ++i)
 	{
 		DataOfMountManager.listOfDisks[i] = DataOfMountManager.listOfDisks[i + 1];
 	}
-	
 
 	Irp->IoStatus.Status = STATUS_SUCCESS;
 	Irp->IoStatus.Information = 0;
