@@ -101,10 +101,12 @@ FileDiskDeviceControl(
 
 	else if (io_stack->Parameters.DeviceIoControl.IoControlCode == IOCTL_FILE_DISK_GET_AMOUNT_OF_MOUNTED_DISKS)
 	{
+		DbgBreakPoint();
 		CoreMNTUnmountRequest* response = (CoreMNTUnmountRequest*)Irp->AssociatedIrp.SystemBuffer;
 		response->deviceId = DataOfMountManager.amountOfMountedDisk.deviceId;
 		Irp->IoStatus.Status = STATUS_SUCCESS;
 		Irp->IoStatus.Information = sizeof(CoreMNTUnmountRequest);
+		IoCompleteRequest(Irp, IO_NO_INCREMENT);
 		return STATUS_SUCCESS;
 	}
 	else if (io_stack->Parameters.DeviceIoControl.IoControlCode == IOCTL_FILE_DISK_GET_ALL_DISK)
@@ -115,11 +117,11 @@ FileDiskDeviceControl(
 		irpStack = IoGetCurrentIrpStackLocation(Irp);
 		USHORT totalLenOfNames = 0;
 		PVOID buffer;
-		for (size_t i = 0; i < MAX_DISK_AMOUNT; i++)
+		for (size_t i = 0; i < DataOfMountManager.amountOfMountedDisk.deviceId; i++)
 		{
 			totalLenOfNames += DataOfMountManager.listOfDisks[i].FileNameLength;
 		}
-		ULONG outsize = MAX_DISK_AMOUNT *(sizeof(Response)  - sizeof(wchar_t)) + totalLenOfNames;
+		ULONG outsize = DataOfMountManager.amountOfMountedDisk.deviceId *sizeof(Response) + totalLenOfNames * sizeof(wchar_t);
 		if (io_stack->Parameters.DeviceIoControl.OutputBufferLength < outsize)
 		{
 			status = STATUS_BUFFER_TOO_SMALL;
@@ -128,10 +130,13 @@ FileDiskDeviceControl(
 		}
 		// Get the input/output buffers and their lengths
 		buffer = Irp->AssociatedIrp.SystemBuffer;
-		Response * response = (Response*) buffer;
+
+		*(ULONG32*)buffer = DataOfMountManager.amountOfMountedDisk.deviceId;
+
+		Response * response = (Response*)( (char*)buffer+ sizeof(ULONG32));
 
 		// Copy the response data into the output buffer
-		for (size_t i = 0; i < MAX_DISK_AMOUNT; i++)
+		for (size_t i = 0; i < DataOfMountManager.amountOfMountedDisk.deviceId; i++)
 		{
 			RtlCopyMemory(response[i].FileName, DataOfMountManager.listOfDisks[i].FileName, DataOfMountManager.listOfDisks[i].FileNameLength * sizeof(wchar_t));
 			response[i].FileNameLength = DataOfMountManager.listOfDisks[i].FileNameLength;
@@ -142,6 +147,7 @@ FileDiskDeviceControl(
 
 		Irp->IoStatus.Status = STATUS_SUCCESS;
 		Irp->IoStatus.Information = outsize;
+		IoCompleteRequest(Irp, IO_NO_INCREMENT);
 		return STATUS_SUCCESS;
 	}
 

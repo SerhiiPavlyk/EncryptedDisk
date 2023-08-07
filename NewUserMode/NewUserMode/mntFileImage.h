@@ -27,9 +27,9 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <memory>
 
 #define DIRECT_DISK_PREFIX L"\\Device\\Vdisk"
-#define MAX_FILE_NAME 32767
 #define NumDisks 20
 typedef struct DiskParam {
 	LARGE_INTEGER		Size;
@@ -37,19 +37,13 @@ typedef struct DiskParam {
 	USHORT				FileNameLength;
 	wchar_t				FileName[MAX_PATH];
 } DISK_PARAMETERS, * PDISK_PARAMETERS;
-typedef struct DiskParamR {
-	LARGE_INTEGER		Size;
-	wchar_t				Letter;
-	USHORT				FileNameLength;
-	wchar_t				FileName[MAX_PATH];
-} Response, * PResponse;
 int DiskMount(ULONG32 DeviceNumber, PDISK_PARAMETERS  diskParam);
 
 int DiskUnmount(const wchar_t Letter);
 
 int PrintAllDisks();
-typedef struct CORE_MNT_UNMOUNT_REQUEST
+typedef struct TypeMountDisks
 {
-	ULONG32 deviceId;
-}CoreMNTUnmountRequest;
+	ULONG32 amount;
+}MountDisksAmount, * PMountDisksAmount;
 

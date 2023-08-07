@@ -189,12 +189,13 @@ int DiskUnmount(const wchar_t Letter)
 
 int PrintAllDisks(/*char DriveLetter*/)
 {
-	size_t size = NumDisks* (sizeof(Response) + MAX_PATH * sizeof(wchar_t));
-	Response* response = new Response[NumDisks * (sizeof(Response) + MAX_PATH * sizeof(wchar_t))];
+	ULONG32 size = sizeof(ULONG32)+  NumDisks* (sizeof(DISK_PARAMETERS) + MAX_PATH * sizeof(wchar_t));
+	std::unique_ptr <char[]> response = std::make_unique<char[]>(size);
+	std::unique_ptr<DISK_PARAMETERS[]> data = std::make_unique<DISK_PARAMETERS[]>(NumDisks);
 	HANDLE                  Device;
-	DWORD                   BytesReturned;
+	DWORD                   BytesReturned={0};
 	wchar_t    DriverName[] = L"\\\\.\\GLOBALROOT\\Device\\DEVICE_TEST_NAME";
-	response[5].Letter = 't';
+
 	Device = CreateFile(DriverName,
 		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -208,7 +209,7 @@ int PrintAllDisks(/*char DriveLetter*/)
 		return -1;
 	}
 	// Step 2: Send the IRP_MJ_WRITE request to the driver
-	if (!DeviceIoControl(Device, IOCTL_FILE_DISK_GET_ALL_DISK, NULL, 0, response,
+	if (!DeviceIoControl(Device, IOCTL_FILE_DISK_GET_ALL_DISK, NULL, 0, (PVOID)response.get(),
 		size, &BytesReturned, NULL))
 	{
 		printf("Error sending IOCTL: %d\n", GetLastError());
@@ -219,20 +220,21 @@ int PrintAllDisks(/*char DriveLetter*/)
 	}
 	// Step 3: Close the device handle
 	CloseHandle(Device);
-	for (size_t i = 0; i < NumDisks; i++)
+	ULONG32 numDisk = *(ULONG32*)response.get();
+	std::cout << numDisk << std::endl;;
+	data.reset( (DISK_PARAMETERS*)((char*)response.get() + sizeof(ULONG32)));
+	for (size_t i = 0; i < numDisk; i++)
 	{
-		if(&response != NULL)
+		if(data != NULL)
 		{
 			wprintf(L"Disk Parameters:\n");
-			wprintf(L"  Size: %lld\n", response[i].Size.QuadPart);
-			wprintf(L"  Letter: %C\n", response[i].Letter);
-			wprintf(L"  FileNameLength: %hu\n", response[i].FileNameLength);
-			wprintf(L"  FileName: %s\n", response[i].FileName);
+			wprintf(L"  Size: %lld\n", data.get()[i].Size.QuadPart);
+			wprintf(L"  Letter: %C\n", data.get()[i].Letter);
+			wprintf(L"  FileNameLength: %hu\n", data.get()[i].FileNameLength);
+			wprintf(L"  FileName: %s\n", data.get()[i].FileName);
 			std::cout << "\n______________________\n";
 		}
 	}
-	
-	delete[]response;
 
 	return 0;
 }

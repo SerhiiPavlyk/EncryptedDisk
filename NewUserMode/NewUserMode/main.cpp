@@ -43,19 +43,21 @@ int main(int argc, char* argv[])
 		printf("Error opening device: %d\n", GetLastError());
 		return -1;
 	}
-	CoreMNTUnmountRequest *response = new CoreMNTUnmountRequest;
-	if (!DeviceIoControl(Device, IOCTL_FILE_DISK_GET_AMOUNT_OF_MOUNTED_DISKS, NULL, 0, response,
-		sizeof(response), &BytesReturned, NULL))
+	std::unique_ptr< MountDisksAmount>response = std::make_unique <MountDisksAmount>();
+	*response.get() = { 0 };
+	if (!DeviceIoControl(Device, IOCTL_FILE_DISK_GET_AMOUNT_OF_MOUNTED_DISKS, NULL, 0, (PVOID)response.get(),
+		sizeof(MountDisksAmount), &BytesReturned, NULL))
 	{
 		printf("Error sending IOCTL: %d\n", GetLastError());
 	}
 	else
 	{
 		printf("IOCTL_FILE_DISK_CREATE_DISK request sent successfully to the driver.\n");
-		std::cout << response->deviceId << std::endl;
+		std::cout << response.get()->amount << std::endl;
+		std::cout << BytesReturned << std::endl;
 	}
 	CloseHandle(Device);
-	DeviceNumber = response->deviceId;
+	DeviceNumber = response.get()->amount;
 	try
 	{
 		while (start)
@@ -142,8 +144,6 @@ int main(int argc, char* argv[])
 			case(0):
 				start = false;
 
-				system("pause");
-
 				break;
 
 			default:
@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-
+	delete diskParam;
 
 	return 0;
 }

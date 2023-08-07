@@ -602,11 +602,16 @@ NTSTATUS FileDiskCloseFile(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 
 	device_extension = (PDEVICE_EXTENSION)DeviceObject->DeviceExtension;
 
-	ExFreePool(device_extension->file_name.Buffer);
+
 
 	ZwClose(device_extension->file_handle);
-
-	device_extension->media_in_device = FALSE;
+	DataOfMountManager.amountOfMountedDisk.deviceId--;
+	ExFreePool(DataOfMountManager.listOfDisks[device_extension->device_ID].FileName);
+	for (UINT32 i = device_extension->device_ID; i < DataOfMountManager.gMountedDiskCount; ++i)
+	{
+		DataOfMountManager.listOfDisks[i] = DataOfMountManager.listOfDisks[i + 1];
+	}
+	
 
 	Irp->IoStatus.Status = STATUS_SUCCESS;
 	Irp->IoStatus.Information = 0;
