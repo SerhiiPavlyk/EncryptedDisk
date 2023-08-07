@@ -1,0 +1,17 @@
+# Compiled class file
+*.obj
+
+# Log file
+*.log
+
+/bin/*/./
+*vs*
+*Debug*
+*RELEASE*
+/build/*
+
+
+# Project files #
+*.sln
+*.vcxproj*
+
