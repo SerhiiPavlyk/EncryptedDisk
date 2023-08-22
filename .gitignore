@@ -16,8 +16,8 @@
 # Project files #
 *.sln
 
-*.vcxproj
-
 *.user
 
 *.filters
+
+*.vcxproj
