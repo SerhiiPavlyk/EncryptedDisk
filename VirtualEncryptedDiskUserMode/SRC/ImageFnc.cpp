@@ -3,6 +3,7 @@
 #include "ImageFnc.h"
 #include <stdexcept>
 
+
 void DiskMount(ULONG32 DeviceNumber, PDISK_PARAMETERS  diskParam)
 {
 	wchar_t    VolumeName[] = L"\\\\.\\ :";
@@ -31,10 +32,36 @@ void DiskMount(ULONG32 DeviceNumber, PDISK_PARAMETERS  diskParam)
 		throw std::exception("DISK is BUSY");
 	}
 
+	const wchar_t    DriverName[] = DriverName_;
+
+	Device = CreateFile(DriverName,
+		GENERIC_READ | GENERIC_WRITE,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		NULL,
+		OPEN_EXISTING,
+		COPY_FILE_NO_BUFFERING,
+		NULL);
+
+	if (Device == INVALID_HANDLE_VALUE)
+	{
+		throw std::exception("Error opening device: %d\n", GetLastError());
+	}
+	std::unique_ptr< MountDisksAmount>response = std::make_unique <MountDisksAmount>();
+
+	*response.get() = { 0 };
+	if (!DeviceIoControl(Device, IOCTL_FILE_DISK_GET_FREE_ID, NULL, 0, (PVOID)response.get(),
+		sizeof(MountDisksAmount), &BytesReturned, NULL))
+	{
+		CloseHandle(Device);
+		throw std::exception("Error sending IOCTL: %d\n", GetLastError());
+	}
+
+	CloseHandle(Device);
+	DeviceNumber = response.get()->amount;
 	swprintf(DeviceName, DIRECT_DISK_PREFIX L"%u", DeviceNumber);
 	if (!DefineDosDevice(DDD_RAW_TARGET_PATH, &VolumeName[4], DeviceName))
 	{
-		throw std::exception("!DefineDosDeviceA");
+		throw std::exception("Failed to register the disk");
 	}
 
 	Device = CreateFile(
@@ -61,14 +88,12 @@ void DiskMount(ULONG32 DeviceNumber, PDISK_PARAMETERS  diskParam)
 		NULL,
 		0,
 		&BytesReturned,
-		NULL
-	))
+		NULL))
 	{
 		DefineDosDevice(DDD_REMOVE_DEFINITION, &VolumeName[4], NULL);
 		CloseHandle(Device);
 		throw std::exception("Mount disk UNSUCCESSFULL!");
 	}
-
 	CloseHandle(Device);
 	SHChangeNotify(SHCNE_DRIVEADD, SHCNF_PATH, DriveName, NULL);
 	std::wcout << L"Disk " << &VolumeName[4] << L" mounted successfully" << std::endl;
@@ -171,11 +196,10 @@ void DiskUnmount(const wchar_t Letter)
 void PrintAllDisks()
 {
 	const ULONG32 size = sizeof(ULONG32) + NumDisks * (sizeof(Response) + MAX_PATH * sizeof(wchar_t));
-	std::unique_ptr <char[]> response = std::make_unique<char[]>(size);
-	std::unique_ptr<Response[]> data = std::make_unique<Response[]>(NumDisks);
+	std::unique_ptr<char[]> response = std::make_unique<char[]>(size);
 	HANDLE                  Device;
 	DWORD                   BytesReturned = { 0 };
-	const wchar_t    DriverName[] = L"\\\\.\\GLOBALROOT\\Device\\DEVICE_TEST_NAME";
+	const wchar_t    DriverName[] = DriverName_;
 
 	Device = CreateFile(DriverName,
 		GENERIC_READ | GENERIC_WRITE,
@@ -200,18 +224,20 @@ void PrintAllDisks()
 
 	ULONG32 numDisk = *(ULONG32*)response.get();
 
-	data.reset((Response*)((char*)response.get() + sizeof(ULONG32)));
-
+	Response* data = reinterpret_cast<Response*>(response.get() + sizeof(ULONG32));
 	for (ULONG32 i = 0; i < numDisk; ++i)
 	{
-		if (data.get() != NULL)
-		{
-			wprintf(L"Disk Parameters:\n");
-			wprintf(L"  Size: %lld\n", data.get()[i].Size.QuadPart);
-			wprintf(L"  Letter: %C\n", data.get()[i].Letter);
-			wprintf(L"  FileNameLength: %hu\n", data.get()[i].FileNameLength);
-			wprintf(L"  FileName: %s\n", data.get()[i].FileName);
-			std::cout << "\n______________________\n";
-		}
+		std::wstring tempName (data[i].FileName);
+		tempName.erase(tempName.begin(), tempName.begin()+ wcslen(DiskFilePrefix));
+		wprintf(L"Disk Parameters:\n");
+		wprintf(L"  Size: %lld bytes | %.2f megabytes | %.2f gigabytes\n",
+			data[i].Size.QuadPart,
+			data[i].Size.QuadPart / (1024.0 * 1024.0),
+			data[i].Size.QuadPart / (1024.0 * 1024.0 * 1024.0));
+		wprintf(L"  Letter: %C\n", data[i].Letter);
+		wprintf(L"  FileNameLength: %hu\n", data[i].FileNameLength);
+		wprintf(L"  FileName: %s\n", tempName.c_str());
+		std::cout << "\n______________________\n";
+
 	}
 }

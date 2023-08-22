@@ -16,7 +16,7 @@ inline bool IsLetter(const wchar_t letter)
 	return (letter >= L'a' && letter <= L'z');
 }
 
-int main(int argc, char* argv[])
+int main(void)
 {
 	unsigned int				choose = 0;
 	bool						start = true;
@@ -27,8 +27,9 @@ int main(int argc, char* argv[])
 	wchar_t						password[100];
 	HANDLE						Device;
 	DWORD						BytesReturned;
-	wchar_t						DriverName[] = L"\\\\.\\GLOBALROOT\\Device\\DEVICE_TEST_NAME";
-
+	wchar_t						DriverName[] = DriverName_;
+	setlocale(LC_ALL, "");
+	SetConsoleCP(1251);
 	std::unique_ptr<DISK_PARAMETERS>diskParam = std::make_unique<DISK_PARAMETERS>();
 
 	Device = CreateFile(DriverName,
@@ -38,7 +39,8 @@ int main(int argc, char* argv[])
 		OPEN_EXISTING,
 		COPY_FILE_NO_BUFFERING,
 		NULL);
-
+	try
+	{
 	if (Device == INVALID_HANDLE_VALUE)
 	{
 		throw std::exception("Error opening device: %d\n", GetLastError());
@@ -58,8 +60,7 @@ int main(int argc, char* argv[])
 
 	DeviceNumber = response.get()->amount;
 
-	try
-	{
+
 		while (start)
 		{
 			PrintOptions();
@@ -73,12 +74,12 @@ int main(int argc, char* argv[])
 				std::cout << "Write disk letter: ";
 				std::wcin >> DiskLetter;
 
-				DiskLetter = std::tolower(DiskLetter);
+				DiskLetter = static_cast<wchar_t>(std::tolower(DiskLetter));
 
 				if (!IsLetter(DiskLetter))
 				{
 					std::wcout << L"The disk letter is not between 'a' and 'z' (lowercase)." << std::endl;
-					return -1;
+					break;
 				}
 
 				diskParam->Letter = DiskLetter;
@@ -91,7 +92,7 @@ int main(int argc, char* argv[])
 					<< "Disk size: ";
 
 				std::cin >> DiskSize;
-				wchar_t DiskSizeLower = std::tolower(DiskSize[strlen(DiskSize) - 1]);
+				wchar_t DiskSizeLower = static_cast<wchar_t>(std::tolower(DiskSize[strlen(DiskSize) - 1]));
 
 				if (DiskSizeLower == 'g')
 				{
@@ -116,7 +117,7 @@ int main(int argc, char* argv[])
 				std::cout << "Write file path: ";
 				std::wcin >> FilePath;
 
-				wcscpy(diskParam->FileName, L"\\??\\");
+				wcscpy(diskParam->FileName, DiskFilePrefix);
 				wcscat(diskParam->FileName, FilePath);
 
 				diskParam->FileNameLength = static_cast<USHORT>(wcslen(diskParam->FileName));
@@ -140,7 +141,7 @@ int main(int argc, char* argv[])
 
 				std::wcin >> DiskLetter;
 
-				DiskLetter = std::tolower(DiskLetter);
+				DiskLetter = static_cast<wchar_t>(std::tolower(DiskLetter));
 
 				if (!IsLetter(DiskLetter))
 				{
@@ -163,7 +164,7 @@ int main(int argc, char* argv[])
 			case(0):
 			{
 				start = false;
-
+				
 				break;
 			}
 			default:
@@ -181,6 +182,6 @@ int main(int argc, char* argv[])
 		start = false;
 		return -1;
 	}
-
+	system("pause");
 	return 0;
 }

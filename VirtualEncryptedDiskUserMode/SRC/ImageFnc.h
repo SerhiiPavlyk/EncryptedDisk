@@ -7,6 +7,8 @@
 #define IOCTL_FILE_DISK_CLOSE_FILE \
 	CTL_CODE(FILE_DEVICE_DISK, 0x805, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
 
+#define IOCTL_FILE_DISK_GET_FREE_ID  \
+  CTL_CODE(FILE_DEVICE_DISK, 0x806, METHOD_BUFFERED, FILE_READ_ACCESS)
 
 #define IOCTL_FILE_DISK_GET_ALL_DISK  \
   CTL_CODE(FILE_DEVICE_DISK, 0x808, METHOD_BUFFERED, FILE_READ_ACCESS)
@@ -21,6 +23,9 @@
 
 #define DIRECT_DISK_PREFIX L"\\Device\\Vdisk"
 #define NumDisks 20
+#define DriverName_ L"\\\\.\\GLOBALROOT\\Device\\VirtualEncryptedDisk"
+
+#define DiskFilePrefix  L"\\??\\"
 
 typedef struct DiskParam {
 	LARGE_INTEGER		Size;
